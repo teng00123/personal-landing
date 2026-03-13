@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -13,7 +14,7 @@ class ArticleBase(BaseModel):
 
 
 class ArticleCreate(ArticleBase):
-    slug: Optional[str] = None      # 不填则自动生成
+    slug: Optional[str] = None  # 不填则自动生成
 
 
 class ArticleUpdate(BaseModel):
@@ -56,4 +57,4 @@ class ArticlePage(BaseModel):
     total: int
     page: int
     page_size: int
-    items: List[ArticleListItem]
+    items: list[ArticleListItem]

@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -59,4 +60,4 @@ class ProjectPage(BaseModel):
     total: int
     page: int
     page_size: int
-    items: List[ProjectOut]
+    items: list[ProjectOut]

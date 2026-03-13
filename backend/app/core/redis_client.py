@@ -1,4 +1,5 @@
 import redis as _redis
+
 from app.core.config import settings
 
 _pool = _redis.ConnectionPool(

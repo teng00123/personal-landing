@@ -2,25 +2,25 @@
 deploy.py — Iteration 3
 Celery 自动部署任务：git clone / pull → 框架识别 → 安装依赖 → 构建 → 启动进程
 """
+
 import os
 import re
 import signal
 import socket
 import subprocess
-import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from celery import Task
 from sqlalchemy.orm import Session
 
-from app.tasks.celery_app import celery_app
+from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.project import Project
-from app.core.config import settings
-
+from app.tasks.celery_app import celery_app
 
 # ── 工具函数 ───────────────────────────────────────────────
+
 
 def _find_free_port(start: int = None, end: int = 9000) -> int:
     start = start or settings.DEPLOY_BASE_PORT
@@ -48,7 +48,7 @@ def _detect_framework(proj_dir: Path) -> str:
         if "next" in content:
             return "nextjs"
         if '"build"' in content:
-            return "vue-react"   # Vue / React / 其他有 build 脚本的 SPA
+            return "vue-react"  # Vue / React / 其他有 build 脚本的 SPA
         return "nodejs"
 
     if req.exists():
@@ -78,9 +78,13 @@ def _run(cmd: str, cwd: Path, log_cb, timeout: int = 300) -> bool:
     """执行 shell 命令，把输出回调给 log_cb，返回是否成功"""
     log_cb(f"$ {cmd}\n")
     proc = subprocess.Popen(
-        cmd, shell=True, cwd=str(cwd),
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, bufsize=1,
+        cmd,
+        shell=True,
+        cwd=str(cwd),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
     )
     try:
         for line in proc.stdout:
@@ -118,6 +122,7 @@ def _kill_process(proj_dir: Path):
 
 # ── 数据库更新辅助 ─────────────────────────────────────────
 
+
 def _update_project(project_id: int, **kwargs):
     db: Session = SessionLocal()
     try:
@@ -143,6 +148,7 @@ def _append_log(project_id: int, text: str):
 
 # ── Celery Tasks ───────────────────────────────────────────
 
+
 @celery_app.task(name="deploy_project", bind=True)
 def deploy_project(self: Task, project_id: int):
     """
@@ -154,9 +160,7 @@ def deploy_project(self: Task, project_id: int):
     5. 启动进程（后台）
     """
     # 清空旧日志，状态→deploying
-    _update_project(project_id,
-                    deploy_status="deploying",
-                    deploy_log="[deploy] 开始部署...\n")
+    _update_project(project_id, deploy_status="deploying", deploy_log="[deploy] 开始部署...\n")
 
     def log(text: str):
         _append_log(project_id, text)
@@ -167,15 +171,15 @@ def deploy_project(self: Task, project_id: int):
         p = db.get(Project, project_id)
         if not p:
             return
-        github_url   = p.github_url
-        branch       = p.deploy_branch or "main"
-        custom_cmd   = p.deploy_command
+        github_url = p.github_url
+        branch = p.deploy_branch or "main"
+        custom_cmd = p.deploy_command
         project_name = re.sub(r"[^\w-]", "_", p.name)
     finally:
         db.close()
 
-    base_dir  = Path(settings.DEPLOY_BASE_DIR)
-    proj_dir  = base_dir / f"proj_{project_id}_{project_name}"
+    base_dir = Path(settings.DEPLOY_BASE_DIR)
+    proj_dir = base_dir / f"proj_{project_id}_{project_name}"
     base_dir.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -183,11 +187,16 @@ def deploy_project(self: Task, project_id: int):
         if proj_dir.exists():
             log(f"[git] 目录已存在，执行 git pull (branch: {branch})\n")
             _kill_process(proj_dir)
-            ok = _run(f"git fetch origin && git checkout {branch} && git reset --hard origin/{branch}",
-                      proj_dir, log)
+            ok = _run(
+                f"git fetch origin && git checkout {branch} && git reset --hard origin/{branch}",
+                proj_dir,
+                log,
+            )
         else:
             log(f"[git] clone {github_url} (branch: {branch})\n")
-            ok = _run(f"git clone --depth=1 --branch {branch} {github_url} {proj_dir}", base_dir, log)
+            ok = _run(
+                f"git clone --depth=1 --branch {branch} {github_url} {proj_dir}", base_dir, log
+            )
 
         if not ok:
             raise RuntimeError("git clone/pull 失败")
@@ -271,21 +280,25 @@ def deploy_project(self: Task, project_id: int):
 
         # 后台启动进程（不阻塞 Celery worker）
         proc = subprocess.Popen(
-            start_cmd, shell=True, cwd=str(proj_dir),
+            start_cmd,
+            shell=True,
+            cwd=str(proj_dir),
             stdout=open(proj_dir / "stdout.log", "w"),
             stderr=open(proj_dir / "stderr.log", "w"),
-            preexec_fn=os.setsid,   # 独立进程组，防止 worker 退出时被 kill
+            preexec_fn=os.setsid,  # 独立进程组，防止 worker 退出时被 kill
         )
         _write_pid(proj_dir, proc.pid)
 
         deploy_url = f"{settings.DEPLOY_BASE_URL}:{port}"
         log(f"[done] 部署成功！访问: {deploy_url}\n")
 
-        _update_project(project_id,
-                        deploy_status="running",
-                        deploy_port=port,
-                        deploy_url=deploy_url,
-                        last_deployed_at=datetime.now(timezone.utc))
+        _update_project(
+            project_id,
+            deploy_status="running",
+            deploy_port=port,
+            deploy_url=deploy_url,
+            last_deployed_at=datetime.now(UTC),
+        )
 
     except Exception as exc:
         log(f"\n[ERROR] {exc}\n")
@@ -307,7 +320,4 @@ def stop_project(project_id: int):
 
     proj_dir = Path(settings.DEPLOY_BASE_DIR) / f"proj_{project_id}_{project_name}"
     _kill_process(proj_dir)
-    _update_project(project_id,
-                    deploy_status="stopped",
-                    deploy_port=None,
-                    deploy_url=None)
+    _update_project(project_id, deploy_status="stopped", deploy_port=None, deploy_url=None)

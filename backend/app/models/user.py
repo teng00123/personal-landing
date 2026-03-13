@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.sql import func
+
 from app.db.session import Base
 
 
@@ -15,8 +16,8 @@ class User(Base):
 
     # ── 公开 Profile ────────────────────────────────────────
     full_name = Column(String(128))
-    title = Column(String(256))        # "Senior Backend Engineer @ Tencent"
-    bio = Column(Text)                 # 简介（支持 Markdown）
+    title = Column(String(256))  # "Senior Backend Engineer @ Tencent"
+    bio = Column(Text)  # 简介（支持 Markdown）
     avatar_url = Column(String(512))
     github_url = Column(String(256))
     linkedin_url = Column(String(256))

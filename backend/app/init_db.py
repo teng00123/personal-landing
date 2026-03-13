@@ -12,77 +12,79 @@ init_db.py — 数据库初始化
   python -m app.init_db --seed     # 建表 + admin + 示例数据
   python -m app.init_db --reset    # ⚠️  删除所有表后重建（危险！）
 """
+
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
-from app.db.session import engine, Base
-from app.models import User, Article, Project  # noqa — 注册模型到 metadata
-from app.core.security import hash_password
 from app.core.config import settings
-
+from app.core.security import hash_password
+from app.db.session import Base, engine
+from app.models import Article, Project, User  # noqa — 注册模型到 metadata
 
 # ── 示例数据 ───────────────────────────────────────────────
 
-SAMPLE_RESUME = json.dumps({
-    "experience": [
-        {
-            "company": "示例科技有限公司",
-            "title": "高级全栈工程师",
-            "start": "2022-01",
-            "end": "",
-            "description": "负责核心交易系统架构设计与性能优化，QPS 提升 300%，主导微服务改造。",
-            "skills": "Python,FastAPI,Vue3,MySQL,Redis,Celery"
-        },
-        {
-            "company": "前一家公司",
-            "title": "后端工程师",
-            "start": "2020-06",
-            "end": "2021-12",
-            "description": "参与微服务拆分，维护 CI/CD 流水线，改善部署效率 50%。",
-            "skills": "Go,Docker,Kubernetes,gRPC"
-        }
-    ],
-    "education": [
-        {
-            "school": "某某大学",
-            "degree": "本科",
-            "major": "计算机科学与技术",
-            "start": "2016-09",
-            "end": "2020-06"
-        }
-    ],
-    "skills": [
-        {
-            "category": "后端",
-            "items": [
-                {"name": "Python / FastAPI", "level": 95},
-                {"name": "Go",              "level": 75},
-                {"name": "MySQL / Redis",   "level": 90}
-            ]
-        },
-        {
-            "category": "前端",
-            "items": [
-                {"name": "Vue 3 / Vite",   "level": 82},
-                {"name": "TypeScript",     "level": 72}
-            ]
-        },
-        {
-            "category": "运维 / 基础设施",
-            "items": [
-                {"name": "Docker / K8s",   "level": 84},
-                {"name": "Linux / Bash",   "level": 88},
-                {"name": "Celery / MQ",    "level": 80}
-            ]
-        }
-    ],
-    "certifications": []
-}, ensure_ascii=False)
+SAMPLE_RESUME = json.dumps(
+    {
+        "experience": [
+            {
+                "company": "示例科技有限公司",
+                "title": "高级全栈工程师",
+                "start": "2022-01",
+                "end": "",
+                "description": "负责核心交易系统架构设计与性能优化，QPS 提升 300%，主导微服务改造。",
+                "skills": "Python,FastAPI,Vue3,MySQL,Redis,Celery",
+            },
+            {
+                "company": "前一家公司",
+                "title": "后端工程师",
+                "start": "2020-06",
+                "end": "2021-12",
+                "description": "参与微服务拆分，维护 CI/CD 流水线，改善部署效率 50%。",
+                "skills": "Go,Docker,Kubernetes,gRPC",
+            },
+        ],
+        "education": [
+            {
+                "school": "某某大学",
+                "degree": "本科",
+                "major": "计算机科学与技术",
+                "start": "2016-09",
+                "end": "2020-06",
+            }
+        ],
+        "skills": [
+            {
+                "category": "后端",
+                "items": [
+                    {"name": "Python / FastAPI", "level": 95},
+                    {"name": "Go", "level": 75},
+                    {"name": "MySQL / Redis", "level": 90},
+                ],
+            },
+            {
+                "category": "前端",
+                "items": [
+                    {"name": "Vue 3 / Vite", "level": 82},
+                    {"name": "TypeScript", "level": 72},
+                ],
+            },
+            {
+                "category": "运维 / 基础设施",
+                "items": [
+                    {"name": "Docker / K8s", "level": 84},
+                    {"name": "Linux / Bash", "level": 88},
+                    {"name": "Celery / MQ", "level": 80},
+                ],
+            },
+        ],
+        "certifications": [],
+    },
+    ensure_ascii=False,
+)
 
 SAMPLE_ARTICLES = [
     {
@@ -305,6 +307,7 @@ SAMPLE_PROJECTS = [
 
 # ── 数据库自动创建 ──────────────────────────────────────────
 
+
 def ensure_database_exists():
     """连接到 MySQL server（不指定库名），自动创建数据库（若不存在）"""
     # 去掉 URL 中的数据库名，连接到 server 级别
@@ -316,10 +319,12 @@ def ensure_database_exists():
     db_name = settings.DB_NAME
     try:
         with server_engine.connect() as conn:
-            conn.execute(text(
-                f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
-                f"CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-            ))
+            conn.execute(
+                text(
+                    f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
+                    f"CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                )
+            )
             conn.commit()
         print(f"  ✓ 数据库 `{db_name}` 已就绪")
     except Exception as e:
@@ -329,6 +334,7 @@ def ensure_database_exists():
 
 
 # ── 建表 ───────────────────────────────────────────────────
+
 
 def create_tables(reset: bool = False):
     if reset:
@@ -342,6 +348,7 @@ def create_tables(reset: bool = False):
 
 
 # ── 管理员账号 ─────────────────────────────────────────────
+
 
 def create_admin(db: Session) -> User:
     existing = db.query(User).filter(User.username == settings.ADMIN_USERNAME).first()
@@ -370,6 +377,7 @@ def create_admin(db: Session) -> User:
 
 # ── 示例数据 ───────────────────────────────────────────────
 
+
 def seed_articles(db: Session, admin: User):
     for data in SAMPLE_ARTICLES:
         exists = db.query(Article).filter(Article.slug == data["slug"]).first()
@@ -379,7 +387,7 @@ def seed_articles(db: Session, admin: User):
         article = Article(
             **data,
             author_id=admin.id,
-            published_at=datetime.now(timezone.utc) if data["is_published"] else None,
+            published_at=datetime.now(UTC) if data["is_published"] else None,
         )
         db.add(article)
     db.commit()
@@ -402,6 +410,7 @@ def seed_projects(db: Session, admin: User):
 
 # ── 主流程 ─────────────────────────────────────────────────
 
+
 def init(seed: bool = False, reset: bool = False):
     print("=" * 50)
     print("  personal-landing · 数据库初始化")
@@ -409,6 +418,7 @@ def init(seed: bool = False, reset: bool = False):
 
     # 1. 等待 DB 就绪
     from app.wait_for_db import wait
+
     wait()
 
     # 2. 自动建库
@@ -442,7 +452,7 @@ def init(seed: bool = False, reset: bool = False):
 
 
 if __name__ == "__main__":
-    _seed  = "--seed"  in sys.argv
+    _seed = "--seed" in sys.argv
     _reset = "--reset" in sys.argv
 
     if _reset:

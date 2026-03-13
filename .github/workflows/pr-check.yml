@@ -1,0 +1,117 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-title:
+    name: PR Title Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title follows Conventional Commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          # Conventional Commits: <type>(<scope>): <subject>
+          PATTERN='^(feat|fix|docs|style|refactor|perf|test|chore|ci|revert|build)(\(.+\))?: .{1,100}$'
+          echo "PR title: $TITLE"
+          if echo "$TITLE" | grep -qP "$PATTERN"; then
+            echo "✅ PR title is valid"
+          else
+            echo "❌ PR title does not follow Conventional Commits format"
+            echo ""
+            echo "Expected: <type>(<scope>): <subject>"
+            echo "Types: feat|fix|docs|style|refactor|perf|test|chore|ci|revert|build"
+            echo "Examples:"
+            echo "  feat: add user authentication"
+            echo "  fix(api): handle null profile gracefully"
+            echo "  chore(deps): bump fastapi to 0.111"
+            exit 1
+          fi
+
+  branch-name:
+    name: Branch Name Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch naming convention
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          PATTERN='^(feat|fix|docs|style|refactor|perf|test|chore|ci|hotfix|release)/.+'
+          echo "Branch: $BRANCH"
+          if echo "$BRANCH" | grep -qP "$PATTERN"; then
+            echo "✅ Branch name is valid"
+          else
+            echo "❌ Branch name does not follow naming convention"
+            echo ""
+            echo "Expected: <type>/<description>"
+            echo "Types: feat|fix|docs|style|refactor|perf|test|chore|ci|hotfix|release"
+            echo "Examples:"
+            echo "  feat/user-authentication"
+            echo "  fix/bcrypt-password-length"
+            echo "  chore/update-dependencies"
+            exit 1
+          fi
+
+  changed-files:
+    name: Changelog / Migration Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: files
+        run: |
+          FILES=$(git diff --name-only origin/main...HEAD)
+          echo "Changed files:"
+          echo "$FILES"
+
+          # 若修改了 models，提醒补 alembic migration
+          if echo "$FILES" | grep -q "backend/app/models/"; then
+            if ! echo "$FILES" | grep -q "backend/alembic/versions/"; then
+              echo ""
+              echo "⚠️  WARNING: Model files changed but no Alembic migration detected."
+              echo "   If you changed the DB schema, run: make migration msg='your message'"
+              echo "   (This is a warning, not a blocking error)"
+            else
+              echo "✅ Alembic migration found alongside model changes"
+            fi
+          fi
+
+          # 若修改了 requirements.txt，检查有无版本锁定
+          if echo "$FILES" | grep -q "backend/requirements.txt"; then
+            if grep -qP '^\w[^=]*$' backend/requirements.txt 2>/dev/null; then
+              echo ""
+              echo "⚠️  WARNING: Some packages in requirements.txt have no version pin."
+              grep -P '^\w[^=]*$' backend/requirements.txt || true
+            fi
+          fi
+
+  size-check:
+    name: PR Size Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR diff size
+        run: |
+          ADDITIONS=$(git diff --shortstat origin/main...HEAD | grep -oP '\d+ insertion' | grep -oP '\d+' || echo 0)
+          DELETIONS=$(git diff --shortstat origin/main...HEAD | grep -oP '\d+ deletion'  | grep -oP '\d+' || echo 0)
+          TOTAL=$((ADDITIONS + DELETIONS))
+
+          echo "📊 PR Size: +${ADDITIONS} / -${DELETIONS} (total: ${TOTAL} lines)"
+
+          if [ "$TOTAL" -gt 1500 ]; then
+            echo ""
+            echo "⚠️  This PR is quite large (${TOTAL} changed lines)."
+            echo "   Consider splitting it into smaller, focused PRs."
+            echo "   (Warning only — not blocking)"
+          else
+            echo "✅ PR size is reasonable"
+          fi

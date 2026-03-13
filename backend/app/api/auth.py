@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.security import create_access_token, decode_token, verify_password
 from app.db.session import get_db
 from app.models.user import User
-from app.core.security import verify_password, create_access_token, decode_token
 from app.schemas.user import LoginRequest, Token, UserOut
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -12,6 +12,7 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 # ── 依赖注入：解析 JWT ──────────────────────────────────────
+
 
 def get_current_user(
     creds: HTTPAuthorizationCredentials = Depends(_bearer),
@@ -35,6 +36,7 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
 
 
 # ── 路由 ───────────────────────────────────────────────────
+
 
 @router.post("/login", response_model=Token, summary="登录获取 Token")
 def login(body: LoginRequest, db: Session = Depends(get_db)):

@@ -1,8 +1,7 @@
-from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, Text, ForeignKey
-)
-from sqlalchemy.sql import func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.db.session import Base
 
 
@@ -13,9 +12,9 @@ class Article(Base):
     title = Column(String(256), nullable=False)
     slug = Column(String(300), unique=True, index=True, nullable=False)
     summary = Column(String(512))
-    content = Column(Text(length=16_777_215), nullable=False)   # MEDIUMTEXT
+    content = Column(Text(length=16_777_215), nullable=False)  # MEDIUMTEXT
     cover_image = Column(String(512))
-    tags = Column(String(256))        # 逗号分隔，如 "Python,Backend,API"
+    tags = Column(String(256))  # 逗号分隔，如 "Python,Backend,API"
     is_published = Column(Boolean, default=False, nullable=False)
     view_count = Column(Integer, default=0, nullable=False)
 

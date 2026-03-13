@@ -1,6 +1,6 @@
+import logging
 import os
 import time
-import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -9,11 +9,11 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
+from app.api.articles import router as articles_router
 from app.api.auth import router as auth_router
 from app.api.profile import router as profile_router
-from app.api.articles import router as articles_router
 from app.api.projects import router as projects_router
+from app.core.config import settings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,13 +60,16 @@ async def log_requests(request: Request, call_next):
     duration = (time.time() - start) * 1000
     logger.info(
         "%s %s %d %.0fms",
-        request.method, request.url.path,
-        response.status_code, duration,
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration,
     )
     return response
 
 
 # ── Global exception handlers ──────────────────────────────
+
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
@@ -87,8 +90,8 @@ app.mount("/uploads", StaticFiles(directory="./uploads"), name="uploads")
 # ── Routers ────────────────────────────────────────────────
 
 PREFIX = "/api/v1"
-app.include_router(auth_router,     prefix=PREFIX)
-app.include_router(profile_router,  prefix=PREFIX)
+app.include_router(auth_router, prefix=PREFIX)
+app.include_router(profile_router, prefix=PREFIX)
 app.include_router(articles_router, prefix=PREFIX)
 app.include_router(projects_router, prefix=PREFIX)
 

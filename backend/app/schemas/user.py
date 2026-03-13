@@ -1,11 +1,13 @@
+import json
 from datetime import datetime
 from typing import Optional
+
 from pydantic import BaseModel, EmailStr, field_validator
-import json
 
 
 class PublicProfileOut(BaseModel):
     """公开接口返回，不含任何敏感字段"""
+
     id: int
     full_name: Optional[str] = None
     title: Optional[str] = None
@@ -23,6 +25,7 @@ class PublicProfileOut(BaseModel):
 
 class UserOut(BaseModel):
     """管理员接口返回，含账号信息，无密码"""
+
     id: int
     username: str
     email: EmailStr
@@ -61,8 +64,8 @@ class UserProfileUpdate(BaseModel):
         if v is not None:
             try:
                 json.loads(v)
-            except json.JSONDecodeError:
-                raise ValueError("resume_data 必须是合法的 JSON 字符串")
+            except json.JSONDecodeError as e:
+                raise ValueError("resume_data 必须是合法的 JSON 字符串") from e
         return v
 
 
