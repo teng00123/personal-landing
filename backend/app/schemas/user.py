@@ -4,7 +4,25 @@ from pydantic import BaseModel, EmailStr, field_validator
 import json
 
 
+class PublicProfileOut(BaseModel):
+    """公开接口返回，不含任何敏感字段"""
+    id: int
+    full_name: Optional[str] = None
+    title: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    github_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    website_url: Optional[str] = None
+    location: Optional[str] = None
+    email_public: Optional[str] = None
+    resume_data: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
 class UserOut(BaseModel):
+    """管理员接口返回，含账号信息，无密码"""
     id: int
     username: str
     email: EmailStr
@@ -35,7 +53,7 @@ class UserProfileUpdate(BaseModel):
     website_url: Optional[str] = None
     location: Optional[str] = None
     email_public: Optional[str] = None
-    resume_data: Optional[str] = None   # JSON string
+    resume_data: Optional[str] = None
 
     @field_validator("resume_data")
     @classmethod
@@ -46,6 +64,11 @@ class UserProfileUpdate(BaseModel):
             except json.JSONDecodeError:
                 raise ValueError("resume_data 必须是合法的 JSON 字符串")
         return v
+
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
 
 
 class LoginRequest(BaseModel):

@@ -134,3 +134,26 @@ a:hover { color: var(--c-primary-d); }
   0%,100% { opacity: 1; }
   50%      { opacity: .45; }
 }
+
+/* ── Element Plus 覆盖 ─────────────────────────────────── */
+.el-button--primary { --el-button-bg-color: var(--c-primary); --el-button-border-color: var(--c-primary); }
+.el-input__wrapper  { background: #162032 !important; box-shadow: 0 0 0 1px #334155 inset !important; }
+.el-input__inner    { color: var(--c-text) !important; }
+.el-textarea__inner { background: #162032 !important; color: var(--c-text) !important; border-color: #334155 !important; }
+.el-dialog          { background: var(--c-bg-card) !important; border: 1px solid var(--c-border) !important; }
+.el-dialog__title   { color: var(--c-text) !important; }
+.el-form-item__label { color: var(--c-text-muted) !important; font-size: .875rem !important; }
+.el-table           { --el-table-bg-color: transparent; --el-table-tr-bg-color: transparent; --el-table-header-bg-color: #162032; }
+.el-table th        { background: #162032 !important; color: var(--c-text-muted) !important; }
+.el-table td        { border-bottom-color: #1e293b !important; color: var(--c-text) !important; }
+.el-table--striped .el-table__body tr.el-table__row--striped td { background: rgba(255,255,255,.018) !important; }
+.el-pagination      { --el-pagination-bg-color: transparent; }
+
+/* ── Responsive helpers ────────────────────────────────── */
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
+  .section    { padding: 48px 0; }
+  .section-title { font-size: 1.4rem; }
+  .card { padding: 18px; }
+}
+
