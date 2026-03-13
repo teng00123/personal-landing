@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
-from app.core.security import create_access_token, decode_token, verify_password
+from app.core.security import create_access_token, decode_token
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import LoginRequest, Token, UserOut
@@ -41,7 +41,7 @@ def require_admin(user: User = Depends(get_current_user)) -> User:
 @router.post("/login", response_model=Token, summary="登录获取 Token")
 def login(body: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == body.username).first()
-    if not user or not verify_password(body.password, user.hashed_password):
+    if not user or not body.password == user.hashed_password:
         raise HTTPException(401, "用户名或密码错误")
     token = create_access_token(user.id)
     return Token(access_token=token, user=UserOut.model_validate(user))

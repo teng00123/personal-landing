@@ -21,7 +21,6 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import hash_password
 from app.db.session import Base, engine
 from app.models import Article, Project, User  # noqa — 注册模型到 metadata
 
@@ -359,7 +358,7 @@ def create_admin(db: Session) -> User:
     admin = User(
         username=settings.ADMIN_USERNAME,
         email=settings.ADMIN_EMAIL,
-        hashed_password=hash_password(settings.ADMIN_PASSWORD),
+        hashed_password=settings.ADMIN_PASSWORD,
         is_admin=True,
         full_name="Your Name",
         title="Senior Full Stack Engineer",
