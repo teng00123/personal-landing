@@ -1,0 +1,65 @@
+name: Commit Lint
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  commitlint:
+    name: Check Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # 需要完整历史来检查所有 commit
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install commitlint
+        run: |
+          npm install --save-dev \
+            @commitlint/cli@19 \
+            @commitlint/config-conventional@19
+
+      - name: Write commitlint config
+        run: |
+          cat > commitlint.config.cjs << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            rules: {
+              'type-enum': [2, 'always', [
+                'feat', 'fix', 'docs', 'style', 'refactor',
+                'perf', 'test', 'chore', 'ci', 'revert', 'build'
+              ]],
+              'subject-max-length': [2, 'always', 100],
+              'subject-empty':      [2, 'never'],
+              'type-empty':         [2, 'never'],
+            }
+          };
+          EOF
+
+      - name: Lint commits (push)
+        if: github.event_name == 'push'
+        run: |
+          # 取本次 push 新增的所有 commit
+          FROM="${{ github.event.before }}"
+          TO="${{ github.sha }}"
+          # 若是首次 push（before 为全 0），只检查最新一条
+          if [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
+            npx commitlint --from HEAD~1 --to HEAD --verbose
+          else
+            npx commitlint --from "$FROM" --to "$TO" --verbose
+          fi
+
+      - name: Lint commits (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          npx commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to   "${{ github.event.pull_request.head.sha }}" \
+            --verbose
