@@ -14,22 +14,31 @@ export const profileApi = {
 
 // ── Articles ─────────────────────────────────────────────
 export const articlesApi = {
-  list:       (p)    => http.get('/articles',       { params: p }),
-  getBySlug:  (slug) => http.get(`/articles/slug/${slug}`),
-  adminList:  (p)    => http.get('/articles/admin', { params: p }),
-  getById:    (id)   => http.get(`/articles/${id}`),
-  create:     (d)    => http.post('/articles', d),
-  update:     (id,d) => http.put(`/articles/${id}`, d),
-  remove:     (id)   => http.delete(`/articles/${id}`),
+  // 公开
+  list:       (p)       => http.get('/articles',              { params: p }),
+  getBySlug:  (slug)    => http.get(`/articles/slug/${slug}`),
+  // 管理员
+  adminList:  (p)       => http.get('/articles/admin',        { params: p }),
+  getById:    (id)      => http.get(`/articles/${id}`),
+  create:     (d)       => http.post('/articles', d),
+  update:     (id, d)   => http.put(`/articles/${id}`, d),
+  remove:     (id)      => http.delete(`/articles/${id}`),
+  // 迭代二新增
+  uploadMd:   (fd)      => http.post('/articles/upload-md', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  uploadCover: (id, fd) => http.post(`/articles/${id}/cover`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 }
 
 // ── Projects ─────────────────────────────────────────────
 export const projectsApi = {
-  list:      (p)    => http.get('/projects',          { params: p }),
-  getPublic: (id)   => http.get(`/projects/public/${id}`),
-  adminList: (p)    => http.get('/projects/admin',    { params: p }),
-  getById:   (id)   => http.get(`/projects/${id}`),
-  create:    (d)    => http.post('/projects', d),
-  update:    (id,d) => http.put(`/projects/${id}`, d),
-  remove:    (id)   => http.delete(`/projects/${id}`),
+  list:      (p)      => http.get('/projects',          { params: p }),
+  getPublic: (id)     => http.get(`/projects/public/${id}`),
+  adminList: (p)      => http.get('/projects/admin',    { params: p }),
+  getById:   (id)     => http.get(`/projects/${id}`),
+  create:    (d)      => http.post('/projects', d),
+  update:    (id, d)  => http.put(`/projects/${id}`, d),
+  remove:    (id)     => http.delete(`/projects/${id}`),
 }
