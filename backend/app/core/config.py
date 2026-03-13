@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     # Admin seed
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@example.com"
-    ADMIN_PASSWORD: str = "Admin@123456"
+    ADMIN_PASSWORD: str = "12345678"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
