@@ -17,7 +17,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -31,6 +31,25 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+
+  # ── 一次性初始化任务 ───────────────────────────────────────
+  # 等待 MySQL 就绪 → 自动建库建表 → 创建 admin → 写入示例数据
+  # restart: on-failure 保证 MySQL 未就绪时自动重试；成功后不再重启
+  db-init:
+    build: ./backend
+    restart: on-failure
+    env_file: ./backend/.env
+    environment:
+      - DB_HOST=mysql
+      - REDIS_HOST=redis
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: >
+      sh -c "python -m app.wait_for_db &&
+             python -m app.init_db --seed"
 
   backend:
     build: ./backend
@@ -46,6 +65,7 @@ services:
     volumes:
       - ./backend:/app
       - deploy_workspace:/app/deploy_workspace
+      - uploads:/app/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -66,7 +86,10 @@ services:
       - ./backend:/app
       - deploy_workspace:/app/deploy_workspace
     depends_on:
-      - backend
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
 
   frontend:
@@ -84,3 +107,4 @@ volumes:
   mysql_data:
   redis_data:
   deploy_workspace:
+  uploads:
