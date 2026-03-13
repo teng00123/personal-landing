@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_admin
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.user import UserOut, UserProfileUpdate
-from app.api.auth import require_admin
+from app.schemas.user import PublicProfileOut, UserOut, UserProfileUpdate
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
-@router.get("", response_model=UserOut, summary="获取公开 Profile（首页用）")
+@router.get("", response_model=PublicProfileOut, summary="获取公开 Profile（首页用）")
 def get_profile(db: Session = Depends(get_db)):
-    """返回第一个管理员的公开信息，用于首页展示简历。"""
+    """返回第一个管理员的公开信息，用于首页展示简历。不包含密码等敏感字段。"""
     user = db.query(User).filter(User.is_admin == True, User.is_active == True).first()
     if not user:
         raise HTTPException(404, "Profile 未配置")

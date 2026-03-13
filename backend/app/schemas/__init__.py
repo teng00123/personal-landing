@@ -1,9 +1,21 @@
-from .user import UserOut, UserProfileUpdate, LoginRequest, Token
-from .article import ArticleCreate, ArticleUpdate, ArticleOut, ArticleListItem, ArticlePage
-from .project import ProjectCreate, ProjectUpdate, ProjectOut, ProjectPage
+from .article import ArticleCreate, ArticleListItem, ArticleOut, ArticlePage, ArticleUpdate
+from .project import ProjectCreate, ProjectOut, ProjectPage, ProjectUpdate
+from .user import LoginRequest, PasswordChange, PublicProfileOut, Token, UserOut, UserProfileUpdate
 
 __all__ = [
-    "UserOut", "UserProfileUpdate", "LoginRequest", "Token",
-    "ArticleCreate", "ArticleUpdate", "ArticleOut", "ArticleListItem", "ArticlePage",
-    "ProjectCreate", "ProjectUpdate", "ProjectOut", "ProjectPage",
+    "PublicProfileOut",
+    "UserOut",
+    "UserProfileUpdate",
+    "PasswordChange",
+    "LoginRequest",
+    "Token",
+    "ArticleCreate",
+    "ArticleUpdate",
+    "ArticleOut",
+    "ArticleListItem",
+    "ArticlePage",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectOut",
+    "ProjectPage",
 ]

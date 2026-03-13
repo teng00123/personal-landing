@@ -1,0 +1,62 @@
+name: Commit Lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]   # 仅 main（合并后）再跑一次，feature 分支 PR 已覆盖
+
+jobs:
+  commitlint:
+    name: Check Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install commitlint
+        run: |
+          npm install --save-dev \
+            @commitlint/cli@19 \
+            @commitlint/config-conventional@19
+
+      - name: Write commitlint config
+        run: |
+          cat > commitlint.config.cjs << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            rules: {
+              'type-enum': [2, 'always', [
+                'feat', 'fix', 'docs', 'style', 'refactor',
+                'perf', 'test', 'chore', 'ci', 'revert', 'build'
+              ]],
+              'subject-max-length': [2, 'always', 100],
+              'subject-empty':      [2, 'never'],
+              'type-empty':         [2, 'never'],
+            }
+          };
+          EOF
+
+      - name: Lint commits (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          npx commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to   "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
+      - name: Lint commits (push to main)
+        if: github.event_name == 'push'
+        run: |
+          FROM="${{ github.event.before }}"
+          if [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
+            npx commitlint --from HEAD~1 --to HEAD --verbose
+          else
+            npx commitlint --from "$FROM" --to "${{ github.sha }}" --verbose
+          fi

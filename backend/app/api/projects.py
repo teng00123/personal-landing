@@ -8,21 +8,21 @@
   POST /projects/{id}/cover     上传封面图
   PUT  /projects/{id}/stars     同步 GitHub stars/forks
 """
+
 import os
 import re
 import uuid
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_admin
 from app.db.session import get_db
 from app.models.project import Project
 from app.models.user import User
-from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectOut, ProjectPage
-from app.api.auth import require_admin
+from app.schemas.project import ProjectCreate, ProjectOut, ProjectPage, ProjectUpdate
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -38,6 +38,7 @@ def _parse_repo(github_url: str) -> Optional[str]:
 
 # ── Public ─────────────────────────────────────────────────
 
+
 @router.get("", response_model=ProjectPage, summary="项目列表（公开）")
 def list_projects(
     page: int = Query(1, ge=1),
@@ -48,7 +49,9 @@ def list_projects(
     total = q.count()
     items = (
         q.order_by(Project.sort_order.asc(), desc(Project.created_at))
-        .offset((page - 1) * page_size).limit(page_size).all()
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
     )
     return ProjectPage(total=total, page=page, page_size=page_size, items=items)
 
@@ -62,6 +65,7 @@ def get_project_public(project_id: int, db: Session = Depends(get_db)):
 
 
 # ── Admin ──────────────────────────────────────────────────
+
 
 @router.get("/admin", response_model=ProjectPage, summary="项目列表（管理员）")
 def admin_list(
@@ -77,7 +81,9 @@ def admin_list(
     total = query.count()
     items = (
         query.order_by(Project.sort_order.asc(), desc(Project.created_at))
-        .offset((page - 1) * page_size).limit(page_size).all()
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
     )
     return ProjectPage(total=total, page=page, page_size=page_size, items=items)
 
@@ -103,6 +109,7 @@ def create_project(
     # 自动触发部署
     try:
         from app.tasks.deploy import deploy_project
+
         deploy_project.delay(project.id)
         project.deploy_status = "deploying"
         db.commit()
@@ -154,6 +161,7 @@ def delete_project(
     # 停止进程
     try:
         from app.tasks.deploy import stop_project
+
         stop_project.delay(project_id)
     except Exception:
         pass
@@ -162,6 +170,7 @@ def delete_project(
 
 
 # ── 部署操作 ───────────────────────────────────────────────
+
 
 @router.post("/{project_id}/deploy", response_model=ProjectOut, summary="触发部署")
 def trigger_deploy(
@@ -176,6 +185,7 @@ def trigger_deploy(
         raise HTTPException(409, "项目正在部署中")
 
     from app.tasks.deploy import deploy_project
+
     p.deploy_status = "deploying"
     p.deploy_log = "[deploy] 手动触发部署...\n"
     db.commit()
@@ -194,7 +204,8 @@ def redeploy(
     if not p:
         raise HTTPException(404, "项目不存在")
 
-    from app.tasks.deploy import stop_project, deploy_project
+    from app.tasks.deploy import deploy_project, stop_project
+
     stop_project.delay(project_id)
 
     p.deploy_status = "deploying"
@@ -216,6 +227,7 @@ def stop(
         raise HTTPException(404, "项目不存在")
 
     from app.tasks.deploy import stop_project
+
     stop_project.delay(project_id)
 
     p.deploy_status = "stopped"
@@ -245,6 +257,7 @@ def get_logs(
 
 
 # ── 封面图上传 ─────────────────────────────────────────────
+
 
 @router.post("/{project_id}/cover", response_model=ProjectOut, summary="上传封面图")
 async def upload_cover(

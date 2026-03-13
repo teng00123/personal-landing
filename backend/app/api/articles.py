@@ -6,34 +6,38 @@
   GET  /articles/admin            管理员列表（含草稿）
   全部原有 CRUD 保持不变
 """
+
 import os
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from python_slugify import slugify
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from python_slugify import slugify
 
+from app.api.auth import require_admin
 from app.db.session import get_db
 from app.models.article import Article
 from app.models.user import User
 from app.schemas.article import (
-    ArticleCreate, ArticleUpdate, ArticleOut, ArticleListItem, ArticlePage
+    ArticleCreate,
+    ArticleOut,
+    ArticlePage,
+    ArticleUpdate,
 )
-from app.api.auth import get_current_user, require_admin
-from app.core.config import settings
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
 UPLOAD_DIR = "./uploads/covers"
 ALLOWED_IMG = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_IMG_SIZE = 5 * 1024 * 1024   # 5 MB
+MAX_IMG_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 # ── helpers ────────────────────────────────────────────────
+
 
 def _unique_slug(title: str, db: Session, exclude_id: Optional[int] = None) -> str:
     base = slugify(title) or "article"
@@ -86,6 +90,7 @@ def _parse_md(content: str) -> dict:
 
 # ── Public ─────────────────────────────────────────────────
 
+
 @router.get("", response_model=ArticlePage, summary="文章列表（公开已发布）")
 def list_articles(
     page: int = Query(1, ge=1),
@@ -111,9 +116,7 @@ def list_articles(
 
 @router.get("/slug/{slug}", response_model=ArticleOut, summary="文章详情（by slug）")
 def get_by_slug(slug: str, db: Session = Depends(get_db)):
-    a = db.query(Article).filter(
-        Article.slug == slug, Article.is_published == True
-    ).first()
+    a = db.query(Article).filter(Article.slug == slug, Article.is_published == True).first()
     if not a:
         raise HTTPException(404, "文章不存在")
     a.view_count += 1
@@ -123,6 +126,7 @@ def get_by_slug(slug: str, db: Session = Depends(get_db)):
 
 
 # ── Admin ──────────────────────────────────────────────────
+
 
 @router.get("/admin", response_model=ArticlePage, summary="文章列表（管理员，含草稿）")
 def admin_list(
@@ -148,8 +152,12 @@ def admin_list(
     return ArticlePage(total=total, page=page, page_size=page_size, items=items)
 
 
-@router.post("/upload-md", response_model=ArticleOut, status_code=201,
-             summary="上传 .md 文件，自动解析并保存为草稿")
+@router.post(
+    "/upload-md",
+    response_model=ArticleOut,
+    status_code=201,
+    summary="上传 .md 文件，自动解析并保存为草稿",
+)
 async def upload_markdown(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -166,7 +174,7 @@ async def upload_markdown(
 
     meta = _parse_md(content)
     title = meta["title"] or file.filename.replace(".md", "")
-    slug  = _unique_slug(title, db)
+    slug = _unique_slug(title, db)
 
     article = Article(
         title=meta["title"] or title,
@@ -192,7 +200,7 @@ def create_article(
     slug = body.slug if body.slug else _unique_slug(body.title, db)
     if db.query(Article).filter(Article.slug == slug).first():
         raise HTTPException(409, f"slug '{slug}' 已存在")
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     article = Article(
         **body.model_dump(exclude={"slug"}),
         slug=slug,
@@ -230,7 +238,7 @@ def update_article(
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(a, field, value)
     if body.is_published is True and not a.published_at:
-        a.published_at = datetime.now(timezone.utc)
+        a.published_at = datetime.now(UTC)
     elif body.is_published is False:
         a.published_at = None
     db.commit()
