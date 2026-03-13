@@ -1,7 +1,8 @@
 from __future__ import annotations
-from pydantic_settings import BaseSettings
+
 from functools import lru_cache
-from typing import List
+
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -12,7 +13,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:5173"
 
     @property
-    def CORS_ORIGINS(self) -> List[str]:
+    def CORS_ORIGINS(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
 
     # DB

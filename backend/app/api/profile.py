@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.api.auth import require_admin
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import PublicProfileOut, UserOut, UserProfileUpdate
-from app.api.auth import require_admin
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 

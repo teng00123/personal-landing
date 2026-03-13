@@ -3,6 +3,7 @@ wait_for_db.py — 等待 MySQL 就绪
 Docker 启动时 MySQL 需要几秒钟，此脚本轮询直到连接成功。
 用法：python -m app.wait_for_db
 """
+
 import sys
 import time
 
@@ -12,6 +13,7 @@ from sqlalchemy.exc import OperationalError
 
 def wait(max_retries: int = 30, interval: float = 2.0):
     from app.db.session import engine
+
     print(f"⏳ 等待数据库就绪（最多 {max_retries * interval:.0f}s）...")
     for i in range(1, max_retries + 1):
         try:

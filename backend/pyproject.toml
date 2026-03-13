@@ -16,6 +16,7 @@ ignore = [
     "E501",  # line too long (handled by formatter)
     "B008",  # do not perform function calls in default args (FastAPI Depends pattern)
     "UP007", # use X | Y for unions (py310+ only)
+    "E712",  # SQLAlchemy filter requires == True / == False (not `is True`)
 ]
 
 [tool.ruff.lint.isort]

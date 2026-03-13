@@ -1,8 +1,7 @@
-from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, Text, ForeignKey
-)
-from sqlalchemy.sql import func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.db.session import Base
 
 
@@ -13,10 +12,10 @@ class Project(Base):
     name = Column(String(128), nullable=False)
     description = Column(Text)
     github_url = Column(String(512), nullable=False)
-    github_repo = Column(String(256))       # owner/repo
+    github_repo = Column(String(256))  # owner/repo
     cover_image = Column(String(512))
-    tags = Column(String(256))              # 逗号分隔
-    tech_stack = Column(String(512))        # 逗号分隔技术标签
+    tags = Column(String(256))  # 逗号分隔
+    tech_stack = Column(String(512))  # 逗号分隔技术标签
     is_published = Column(Boolean, default=True, nullable=False)
     sort_order = Column(Integer, default=0, nullable=False)
     stars = Column(Integer, default=0)
@@ -27,10 +26,10 @@ class Project(Base):
     deploy_status = Column(String(32), default="pending", nullable=False)
     deploy_port = Column(Integer)
     deploy_url = Column(String(256))
-    deploy_log = Column(Text)               # 实时部署日志
+    deploy_log = Column(Text)  # 实时部署日志
     deploy_branch = Column(String(64), default="main")
-    deploy_command = Column(String(512))    # 自定义启动命令（可选）
-    framework = Column(String(64))          # 自动检测：vue/react/fastapi/…
+    deploy_command = Column(String(512))  # 自定义启动命令（可选）
+    framework = Column(String(64))  # 自动检测：vue/react/fastapi/…
 
     last_deployed_at = Column(DateTime(timezone=True))
 
