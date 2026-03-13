@@ -39,6 +39,53 @@ docker-compose exec backend python -m app.init_db
 #   后端 API:  http://localhost:8000/docs
 ```
 
+## Celery 任务队列启动说明
+
+### Docker 方式（推荐）
+```bash
+# 启动 Celery Worker（处理部署任务）
+docker-compose up -d celery
+
+# 查看 Celery 日志
+docker-compose logs -f celery
+
+# 启动 Celery Beat（定时任务，如果需要）
+docker-compose up -d celery-beat
+```
+
+### 本地开发方式
+```bash
+# 进入后端目录
+cd backend
+
+# 启动 Celery Worker
+celery -A app.tasks.celery_app:celery_app worker --loglevel=info --pool=solo
+
+# 启动 Celery Beat（定时任务）
+celery -A app.tasks.celery_app:celery_app beat --loglevel=info
+
+# 监控任务状态（Flower）
+celery -A app.tasks.celery_app:celery_app flower
+```
+
+### Celery 任务类型
+- **项目部署**: 自动克隆 GitHub 项目并部署
+- **支持框架**: Vue/React/Next.js/Node/FastAPI/Flask/Django/Static/Docker
+- **端口分配**: 自动扫描 8100-9000 端口范围
+- **日志查看**: 通过 API `/projects/{id}/logs` 实时查看部署日志
+
+### 常用 Celery 命令
+```bash
+# 查看活跃任务
+celery -A app.tasks.celery_app:celery_app inspect active
+
+# 查看注册任务
+celery -A app.tasks.celery_app:celery_app inspect registered
+
+# 清空任务队列
+celery -A app.tasks.celery_app:celery_app purge
+```
+
 ## 本地开发
 
 ```bash
