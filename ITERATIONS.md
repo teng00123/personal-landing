@@ -10,66 +10,92 @@
 |------|------|------|
 | **Iter 1** | 项目骨架 + 后端核心 + 可运行环境 | ✅ 完成 |
 | **Iter 2** | 文章系统（上传 .md / 编辑器 / 渲染） | ✅ 完成 |
-| **Iter 3** | 项目展示 + Celery 自动部署 | 🔜 计划中 |
+| **Iter 3** | 项目展示 + Celery 自动部署 | ✅ 完成 |
 
 ---
 
 ## Iteration 1 — 项目骨架（已完成）
 
 ### 交付物
-- Docker Compose 一键启动（MySQL 8 / Redis 7 / FastAPI / Celery / Vue 3 Dev Server）
+- Docker Compose 一键启动（MySQL 8 / Redis 7 / FastAPI / Celery / Vue 3）
 - 后端全套 API（认证、Profile、文章 CRUD、项目 CRUD）
-- Alembic 迁移框架 + `init_db.py` 一键初始化
-- 前端完整路由体系 + 暗色主题 UI
-- 首页简历展示（工作经历时间轴、技能进度条、教育背景）
-- 文章列表 + 文章详情（Markdown 渲染，含语法高亮）
-- 项目列表（展示部署状态）
-- 管理后台骨架（个人资料编辑）
+- Alembic 迁移框架 + `init_db.py`
+- 前端完整路由 + 暗色主题 UI
+- 首页简历（工作经历时间轴、技能进度条、教育背景）
+- 文章列表 + 详情（Markdown 渲染 + 语法高亮）
+- 管理后台骨架
 
 ---
 
 ## Iteration 2 — 文章系统（已完成）
 
-### 交付物
-
-#### 后端新增
+### 新增接口
 | 接口 | 说明 |
 |------|------|
-| `POST /api/v1/articles/upload-md` | 上传 `.md` 文件，自动解析标题/摘要/标签，保存为草稿 |
-| `POST /api/v1/articles/{id}/cover` | 上传封面图（JPEG/PNG/WebP，≤5MB），存 `/uploads/covers/` |
-| `GET  /api/v1/articles/admin` | 管理员文章列表，支持 `q`（标题搜索）、`published` 筛选 |
-| `PUT  /api/v1/articles/{id}` | 更新文章，`is_published` 切换时自动写入 `published_at` |
-| `DELETE /api/v1/articles/{id}` | 删除文章同时清理封面图文件 |
+| `POST /api/v1/articles/upload-md` | 上传 `.md`，自动解析标题/摘要/标签，存为草稿 |
+| `POST /api/v1/articles/{id}/cover` | 上传封面图（JPEG/PNG/WebP ≤5MB） |
 
-#### 前端新增
-- **ArticleManager.vue** — 文章管理列表
-  - 搜索框 + 发布状态筛选
-  - 一键上传 `.md` 文件，自动跳转编辑器
-  - 发布/取消发布 Switch 实时切换
-  - 编辑 / 预览 / 删除操作
-- **ArticleEditor.vue** — 分栏 Markdown 编辑器
-  - 左栏：标题、摘要、标签、封面图上传、发布开关 + Markdown 编辑区
-  - 右栏：实时预览（marked + highlight.js）
-  - 工具栏：B / I / ` ` / 代码块 / H2 / H3 / 列表 / 引用 / 链接 / 图片
-  - 支持 Tab 缩进、导入 `.md` 文件覆盖
-
-### 用法
-```
-后台 → 文章管理 → 点击「上传.md」选择文件 → 自动解析标题/摘要 → 进入编辑器完善内容
-后台 → 文章管理 → 点击「新建文章」→ 在编辑器中手写 Markdown
-切换 is_published = true → 立即在前台文章列表可见
-```
+### 新增前端
+- **ArticleManager** — 搜索/筛选/上传 .md/发布 Switch/编辑/删除
+- **ArticleEditor** — 左右分栏编辑器（Markdown + 实时预览 + 工具栏 + 封面上传）
 
 ---
 
-## Iteration 3 — 项目自动部署（计划）
+## Iteration 3 — 项目自动部署（已完成）
 
-### 计划功能
-- [ ] 后台录入 GitHub URL + branch + 自定义命令
-- [ ] Celery Task `deploy_project`：git clone → 框架识别 → 安装依赖 → 构建 → 启动
-- [ ] 支持框架：Vue/React/Next.js/Node/FastAPI/Flask/Django/Static/Docker
-- [ ] 端口自动分配（8100~9000）
-- [ ] 部署日志轮询（`GET /projects/{id}/logs`）
-- [ ] 状态：pending → deploying → running / failed
-- [ ] 停止 / 重新部署操作
-- [ ] 前端卡片：运行状态绿点 + "访问" 按钮
+### 新增接口
+| 接口 | 说明 |
+|------|------|
+| `POST /api/v1/projects` | 创建项目，自动触发 Celery 部署 |
+| `POST /api/v1/projects/{id}/deploy` | 手动触发部署 |
+| `POST /api/v1/projects/{id}/redeploy` | 停止后重新部署 |
+| `POST /api/v1/projects/{id}/stop` | 停止运行中的项目 |
+| `GET  /api/v1/projects/{id}/logs` | 增量获取部署日志（offset 参数支持轮询） |
+| `POST /api/v1/projects/{id}/cover` | 上传项目封面图 |
+
+### Celery Task：`deploy_project`
+```
+git clone / pull
+    ↓
+框架自动识别
+    ↓
+安装依赖（npm install / pip install）
+    ↓
+构建（npm run build）
+    ↓
+端口分配（8100~9000 自动扫描）
+    ↓
+后台启动进程（独立进程组）
+    ↓
+更新 deploy_status = running，写入 deploy_url
+```
+
+### 支持框架
+| 框架 | 识别方式 | 启动方式 |
+|------|----------|----------|
+| Vue / React | `package.json` + build script | `serve -s dist -l {PORT}` |
+| Next.js | `next` in package.json | `PORT={PORT} npm start` |
+| Node.js | `package.json`（无 build） | `node index.js` |
+| FastAPI | `requirements.txt` + fastapi | `uvicorn main:app --port {PORT}` |
+| Flask | `requirements.txt` + flask | `flask run --port {PORT}` |
+| Django | `manage.py` | `python manage.py runserver 0.0.0.0:{PORT}` |
+| Static | `index.html` only | `serve -s . -l {PORT}` |
+| Docker | `Dockerfile` | `docker build + run -p {PORT}` |
+
+### 新增前端
+- **ProjectManager** — 卡片 grid，实时部署状态，操作按钮（部署/重部署/停止/删除）
+- **日志 Drawer** — 部署日志实时滚动，2s 增量轮询，自动停止
+- **ProjectsView（公开）** — 运行状态绿点 + "🚀 访问" 按钮，自动轮询部署中的项目
+
+### 快速启动
+```bash
+git clone https://github.com/teng00123/personal-landing.git
+cd personal-landing
+cp backend/.env.example backend/.env
+docker compose up -d
+docker compose exec backend python -m app.init_db
+
+# 主页:    http://localhost:5173
+# 后台:    http://localhost:5173/login   admin / Admin@123456
+# API 文档: http://localhost:8000/docs
+```
