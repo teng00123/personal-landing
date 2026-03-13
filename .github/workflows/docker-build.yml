@@ -1,15 +1,15 @@
 name: Docker Build Check
 
 on:
-  push:
-    branches: [main, "feat/**", "fix/**"]
+  pull_request:
+    branches: [main]
     paths:
       - "backend/Dockerfile"
       - "backend/requirements.txt"
       - "docker-compose.yml"
       - ".github/workflows/docker-build.yml"
-  pull_request:
-    branches: [main]
+  push:
+    branches: [main]   # 仅 main
     paths:
       - "backend/Dockerfile"
       - "backend/requirements.txt"

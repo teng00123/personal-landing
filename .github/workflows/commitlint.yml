@@ -1,10 +1,10 @@
 name: Commit Lint
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
     branches: [main]
+  push:
+    branches: [main]   # 仅 main（合并后）再跑一次，feature 分支 PR 已覆盖
 
 jobs:
   commitlint:
@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0          # 需要完整历史来检查所有 commit
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -43,19 +43,6 @@ jobs:
           };
           EOF
 
-      - name: Lint commits (push)
-        if: github.event_name == 'push'
-        run: |
-          # 取本次 push 新增的所有 commit
-          FROM="${{ github.event.before }}"
-          TO="${{ github.sha }}"
-          # 若是首次 push（before 为全 0），只检查最新一条
-          if [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
-            npx commitlint --from HEAD~1 --to HEAD --verbose
-          else
-            npx commitlint --from "$FROM" --to "$TO" --verbose
-          fi
-
       - name: Lint commits (PR)
         if: github.event_name == 'pull_request'
         run: |
@@ -63,3 +50,13 @@ jobs:
             --from "${{ github.event.pull_request.base.sha }}" \
             --to   "${{ github.event.pull_request.head.sha }}" \
             --verbose
+
+      - name: Lint commits (push to main)
+        if: github.event_name == 'push'
+        run: |
+          FROM="${{ github.event.before }}"
+          if [ "$FROM" = "0000000000000000000000000000000000000000" ]; then
+            npx commitlint --from HEAD~1 --to HEAD --verbose
+          else
+            npx commitlint --from "$FROM" --to "${{ github.sha }}" --verbose
+          fi

@@ -1,13 +1,13 @@
 name: Backend CI
 
 on:
-  push:
-    branches: ["**"]
+  pull_request:
+    branches: [main]
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
-  pull_request:
-    branches: [main]
+  push:
+    branches: [main]   # 仅 main，避免 feature 分支 push + PR 双触发
     paths:
       - "backend/**"
       - ".github/workflows/backend-ci.yml"
@@ -88,40 +88,34 @@ jobs:
             pytest-asyncio==0.23.6 \
             httpx==0.27.0
 
-      # ── Lint (ruff) ───────────────────────────────────────
       - name: Ruff lint
         run: ruff check app/ --output-format=github
 
       - name: Ruff format check
         run: ruff format app/ --check
 
-      # ── Type check (mypy) ─────────────────────────────────
       - name: Mypy
         run: |
           mypy app/ \
             --ignore-missing-imports \
             --no-strict-optional \
             --python-version 3.11
-        continue-on-error: true   # 类型检查警告不阻断 CI，但会记录
+        continue-on-error: true
 
-      # ── DB init ───────────────────────────────────────────
       - name: Init test database
         run: python app/init_db.py
 
-      # ── Tests ─────────────────────────────────────────────
       - name: Run tests
         run: |
           pytest tests/ -v --tb=short 2>/dev/null || \
           echo "No tests found — skipping (add tests/test_*.py to enable)"
 
-      # ── Import sanity check ───────────────────────────────
       - name: App startup smoke test
         run: |
           python -c "
           from app.main import app
           from app.core.config import settings
           from app.core.security import hash_password, verify_password
-          # smoke: bcrypt round-trip
           h = hash_password('TestPass@99')
           assert verify_password('TestPass@99', h), 'bcrypt verify failed'
           print('✅ App import + bcrypt smoke test passed')

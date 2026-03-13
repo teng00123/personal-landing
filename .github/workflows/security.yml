@@ -1,13 +1,12 @@
 name: Security Scan
 
 on:
-  push:
-    branches: [main, "feat/**", "fix/**"]
   pull_request:
     branches: [main]
+  push:
+    branches: [main]   # 仅 main，feature 分支由 PR 覆盖
   schedule:
-    # 每周一 09:00 UTC 自动全量扫描
-    - cron: "0 9 * * 1"
+    - cron: "0 9 * * 1"   # 每周一 09:00 UTC
 
 jobs:
   secret-scan:
@@ -22,7 +21,6 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}  # 公开仓库不需要
 
   python-audit:
     name: Python Dependency Audit (pip-audit)
@@ -47,15 +45,11 @@ jobs:
           pip-audit -r requirements.txt \
             --format=markdown \
             --output=pip-audit-report.md \
-            --ignore-vuln GHSA-jfh8-c2jp-5    \
-            || true   # 不强制失败，但会展示报告
+            || true
 
       - name: Show audit report
         if: always()
-        run: |
-          if [ -f pip-audit-report.md ]; then
-            cat pip-audit-report.md
-          fi
+        run: cat pip-audit-report.md 2>/dev/null || echo "No report generated"
 
       - name: Upload audit report
         if: always()
@@ -85,4 +79,3 @@ jobs:
 
       - name: NPM audit (moderate+)
         run: npm audit --audit-level=moderate || true
-        # 不强制失败；实际项目可改成 exit 1
