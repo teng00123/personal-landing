@@ -1,42 +1,32 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 from backend.app.core.config import Settings
-from backend.app.core.security import hash_password
-from backend.app.db.session import Base
+from backend.app.core.security import hash_password, verify_password
+from backend.app.db.session import Base, get_db
 from backend.app.main import app
 from backend.app.models.user import User
 
-# 测试配置
-TEST_SETTINGS = Settings(
-    DB_HOST="localhost",
-    DB_PORT=3306,
-    DB_USER="test_user",
-    DB_PASSWORD="test_pass",
-    DB_NAME="test_personal_homepage",
-    APP_SECRET_KEY="test-secret-key",
-    DEBUG=True,
-    ADMIN_USERNAME="admin",
-    ADMIN_EMAIL="admin@example.com",
-    ADMIN_PASSWORD="12345678"
-)
-
 # 内存 SQLite 数据库用于测试
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def test_db():
     """创建测试数据库表"""
     Base.metadata.create_all(bind=engine)
-    yield TestingSessionLocal()
-    Base.metadata.drop_all(bind=engine)
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
 
 
 def test_health_endpoint():
@@ -47,7 +37,7 @@ def test_health_endpoint():
         assert response.json() == {"status": "ok", "version": "1.0.0"}
 
 
-def test_create_user(test_db):
+def test_create_user(test_db: Session):
     """测试用户创建"""
     hashed_pw = hash_password("test_password")
     user = User(
@@ -59,11 +49,13 @@ def test_create_user(test_db):
     )
     test_db.add(user)
     test_db.commit()
+    test_db.refresh(user)
     
     # 验证用户已创建
-    saved_user = test_db.query(User).filter(User.username == "testuser").first()
-    assert saved_user is not None
-    assert saved_user.email == "test@example.com"
+    assert user.id is not None
+    assert user.username == "testuser"
+    assert user.email == "test@example.com"
+    assert user.hashed_password == hashed_pw
 
 
 def test_password_hashing():
