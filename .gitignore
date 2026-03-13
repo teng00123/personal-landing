@@ -15,3 +15,6 @@ backend/deploy_workspace/
 *.pid
 .idea/
 .vscode/
+.gtm.yaml
+.gtmproject.yaml
+frontend/package-lock.json

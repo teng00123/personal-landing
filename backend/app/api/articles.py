@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from python_slugify import slugify
+from slugify import slugify
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
