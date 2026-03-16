@@ -77,7 +77,7 @@ const msgType = ref('success')
 async function startSetup() {
   loading.value = true
   try {
-    const data = await http.post('/api/v1/auth/security/mfa/setup')
+    const data = await http.post('/auth/security/mfa/setup')
     qrCode.value = data.qr_code
     secret.value = data.secret
     step.value   = 'setup'
@@ -92,7 +92,7 @@ async function confirmMfa() {
   if (code.value.length < 6) return
   loading.value = true
   try {
-    await http.post('/api/v1/auth/security/mfa/confirm', { code: code.value })
+    await http.post('/auth/security/mfa/confirm', { code: code.value })
     mfaEnabled.value = true
     step.value = 'idle'
     code.value = ''
@@ -108,7 +108,7 @@ async function disableMfa() {
   if (code.value.length < 6) return
   loading.value = true
   try {
-    await http.post('/api/v1/auth/security/mfa/disable', { code: code.value })
+    await http.post('/auth/security/mfa/disable', { code: code.value })
     mfaEnabled.value = false
     step.value = 'idle'
     code.value = ''
