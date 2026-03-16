@@ -5,6 +5,7 @@ FastAPI 入口 — Iteration 4 (性能优化 + 监控) + Iteration 5 (UX)
   - 社交互动 API /api/v1/social (点赞/评论)
   - WebSocket 实时通知 /api/v1/ws/notifications
 """
+import logging
 import os
 from contextlib import asynccontextmanager
 
@@ -14,10 +15,13 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.ai import router as ai_router
 from app.api.articles import router as articles_router
 from app.api.auth import router as auth_router
+from app.api.community import router as community_router
 from app.api.profile import router as profile_router
 from app.api.projects import router as projects_router
+from app.api.sandbox import router as sandbox_router
 from app.api.search import router as search_router
 from app.api.security import router as security_router
 from app.api.social import router as social_router
@@ -34,7 +38,6 @@ setup_logging(
     json_logs=not settings.DEBUG,
 )
 
-import logging
 logger = logging.getLogger("app")
 
 
@@ -46,11 +49,18 @@ async def lifespan(app: FastAPI):
     os.makedirs("./deploy_workspace", exist_ok=True)
     # 确保审计日志表存在
     try:
-        from app.db.session import engine
+        from app.api.community import Activity, ActivityRegistration, Follow, Message
         from app.api.social import Comment
+        from app.db.session import Base, engine
         from app.utils.audit import AuditLog
-        from app.db.session import Base
-        Base.metadata.create_all(bind=engine, tables=[Comment.__table__, AuditLog.__table__])
+        Base.metadata.create_all(bind=engine, tables=[
+            Comment.__table__,
+            AuditLog.__table__,
+            Follow.__table__,
+            Message.__table__,
+            Activity.__table__,
+            ActivityRegistration.__table__,
+        ])
     except Exception as e:
         logger.warning("table init skipped: %s", e)
     logger.info("personal-landing API started", extra={"version": "1.0.0"})
@@ -112,6 +122,9 @@ app.include_router(search_router,    prefix=PREFIX)   # Iter 5
 app.include_router(social_router,    prefix=PREFIX)   # Iter 5
 app.include_router(ws_router,        prefix=PREFIX)   # Iter 5
 app.include_router(security_router,  prefix=PREFIX)   # Iter 6
+app.include_router(ai_router,        prefix=PREFIX)   # Iter 8
+app.include_router(sandbox_router,   prefix=PREFIX)   # Iter 8
+app.include_router(community_router, prefix=PREFIX)   # Iter 8
 
 
 # ── Health Check ──────────────────────────────────────────

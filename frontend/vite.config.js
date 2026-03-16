@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
+import monacoEditorPlugin from '@monaco-editor/vite-plugin'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -10,6 +11,7 @@ export default defineConfig({
   plugins: [
     vue(),
     splitVendorChunkPlugin(),
+    monacoEditorPlugin({ languages: ['python', 'javascript', 'shell', 'go'] }),
     AutoImport({ resolvers: [ElementPlusResolver()] }),
     Components({ resolvers: [ElementPlusResolver()] }),
     // PWA / Service Worker
