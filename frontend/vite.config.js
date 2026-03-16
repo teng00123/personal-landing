@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
-import monacoEditorPlugin from '@monaco-editor/vite-plugin'
+import monacoEditorPlugin from 'vite-plugin-monaco-editor'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import { VitePWA } from 'vite-plugin-pwa'
 
