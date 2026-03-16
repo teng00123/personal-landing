@@ -1,6 +1,6 @@
 <template>
   <!-- 搜索触发按钮 -->
-  <button class="search-trigger" @click="open = true" :aria-label="$t('search.placeholder')">
+  <button class="search-trigger" @click="openModal" :aria-label="$t('search.placeholder')">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
     </svg>
@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import http from '@/api/http.js'
 
 const open         = ref(false)
@@ -113,6 +113,15 @@ const suggestions  = ref([])
 const hotKeywords  = ref([])
 const inputRef     = ref(null)
 let suggestTimer   = null
+
+// 打开弹窗时统一 focus input
+watch(open, (val) => {
+  if (val) nextTick(() => inputRef.value?.focus())
+})
+
+function openModal() {
+  open.value = true
+}
 
 async function loadHot() {
   try {
@@ -159,7 +168,6 @@ function onKeydown(e) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault()
     open.value = !open.value
-    if (open.value) nextTick(() => inputRef.value?.focus())
   }
 }
 
