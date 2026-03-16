@@ -26,8 +26,6 @@ engine = create_engine(
 def set_mysql_session_options(dbapi_conn, connection_record):
     """每个连接建立时设置 MySQL session 参数"""
     with dbapi_conn.cursor() as cursor:
-        # 查询缓存相关
-        cursor.execute("SET SESSION query_cache_type = 0")
         # 排序缓冲区
         cursor.execute("SET SESSION sort_buffer_size = 4194304")   # 4 MB
         # 连接字符集
