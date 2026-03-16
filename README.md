@@ -1,5 +1,7 @@
 # Personal Landing 项目文档
 
+**🇺🇸 English Version**: [README_EN.md](README_EN.md)
+
 ## 项目概述
 
 这是一个全栈个人主页/作品集应用，包含：

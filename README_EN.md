@@ -1,5 +1,7 @@
 # Personal Landing - Full Stack Personal Portfolio Application
 
+**🇨🇳 中文版本**: [README.md](README.md)
+
 ## Project Overview
 
 This is a full-stack personal homepage/portfolio application featuring:
