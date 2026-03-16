@@ -125,7 +125,7 @@ function openModal() {
 
 async function loadHot() {
   try {
-    const data = await http.get('/api/v1/search/hot')
+    const data = await http.get('/search/hot')
     hotKeywords.value = data.keywords || []
   } catch {}
 }
@@ -140,7 +140,7 @@ function close() {
 async function doSearch() {
   if (!query.value.trim()) return
   try {
-    results.value = await http.get(`/api/v1/search?q=${encodeURIComponent(query.value)}&limit=8`)
+    results.value = await http.get(`/search?q=${encodeURIComponent(query.value)}&limit=8`)
     suggestions.value = []
   } catch {}
 }
@@ -151,7 +151,7 @@ function onInput() {
   if (!query.value.trim()) { suggestions.value = []; return }
   suggestTimer = setTimeout(async () => {
     try {
-      const data = await http.get(`/api/v1/search/suggest?q=${encodeURIComponent(query.value)}`)
+      const data = await http.get(`/search/suggest?q=${encodeURIComponent(query.value)}`)
       suggestions.value = data.suggestions || []
     } catch {}
   }, 280)
