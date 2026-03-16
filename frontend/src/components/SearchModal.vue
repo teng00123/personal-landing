@@ -104,7 +104,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { http } from '@/api/http.js'
+import http from '@/api/http.js'
 
 const open         = ref(false)
 const query        = ref('')

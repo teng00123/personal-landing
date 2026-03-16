@@ -4,15 +4,15 @@
  * auto 模式跟随系统 prefers-color-scheme
  */
 import { defineStore } from 'pinia'
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 
-export type ThemeMode = 'dark' | 'light' | 'auto'
+// ThemeMode: 'dark' | 'light' | 'auto'
 
 export const useThemeStore = defineStore('theme', () => {
-  const mode = ref<ThemeMode>((localStorage.getItem('theme') as ThemeMode) || 'auto')
+  const mode = ref(localStorage.getItem('theme') || 'auto')
 
   // 当前实际主题（auto 下根据系统解析）
-  const resolved = ref<'dark' | 'light'>('dark')
+  const resolved = ref('dark')
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
@@ -24,7 +24,7 @@ export const useThemeStore = defineStore('theme', () => {
     document.documentElement.setAttribute('data-theme', resolved.value)
   }
 
-  function setMode(m: ThemeMode) {
+  function setMode(m) {
     mode.value = m
     localStorage.setItem('theme', m)
     applyTheme()

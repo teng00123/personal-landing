@@ -63,7 +63,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { http } from '@/api/http.js'
+import http from '@/api/http.js'
 
 const mfaEnabled = ref(false)
 const step    = ref('idle')
