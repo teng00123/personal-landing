@@ -1,0 +1,55 @@
+# infra/ansible/roles/docker/tasks/main.yml
+---
+- name: 添加 Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: 添加 Docker 源
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: 安装 Docker Engine
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: yes
+
+- name: 启动 Docker 服务
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: 将 ubuntu 用户加入 docker 组
+  user:
+    name: ubuntu
+    groups: docker
+    append: yes
+
+- name: 配置 Docker daemon（日志轮转 + 监控）
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "50m",
+          "max-file": "5"
+        },
+        "metrics-addr": "0.0.0.0:9323",
+        "experimental": true
+      }
+  notify: restart docker
+
+- name: 登录 GHCR
+  shell: |
+    echo "{{ ghcr_token }}" | docker login ghcr.io -u "{{ ghcr_user }}" --password-stdin
+  when: ghcr_token is defined
+  no_log: true

@@ -1,0 +1,13 @@
+# infra/k8s/base/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - namespace.yaml
+  - backend-deployment.yaml
+  - hpa.yaml
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/name: personal-landing
+  app.kubernetes.io/managed-by: kustomize

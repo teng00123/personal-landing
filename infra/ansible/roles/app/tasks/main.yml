@@ -1,0 +1,35 @@
+# infra/ansible/roles/app/tasks/main.yml
+---
+- name: 克隆/更新代码仓库
+  git:
+    repo: https://github.com/teng00123/personal-landing.git
+    dest: /opt/personal-landing
+    version: "{{ app_branch | default('main') }}"
+    force: yes
+  become_user: ubuntu
+
+- name: 写入 .env 文件
+  template:
+    src: env.j2
+    dest: /opt/personal-landing/.env
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+
+- name: 拉取最新镜像
+  shell: |
+    cd /opt/personal-landing
+    docker compose -f docker-compose.yml -f docker-compose.{{ deploy_env }}.yml pull
+  become_user: ubuntu
+
+- name: 启动应用（滚动更新）
+  shell: |
+    cd /opt/personal-landing
+    docker compose -f docker-compose.yml -f docker-compose.{{ deploy_env }}.yml \
+      up -d --remove-orphans --wait
+  become_user: ubuntu
+  notify: check app health
+
+- name: 清理旧镜像
+  shell: docker system prune -f --volumes
+  ignore_errors: yes

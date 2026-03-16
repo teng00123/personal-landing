@@ -1,0 +1,80 @@
+# docker-compose.prod.yml — Production 覆盖配置
+# 用法: docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.prod up -d
+
+version: "3.9"
+
+services:
+  backend:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    environment:
+      - DEBUG=false
+      - APP_SECRET_KEY=${PROD_SECRET_KEY}
+      - ALLOWED_ORIGINS=${PROD_DOMAIN}
+      - DB_HOST=${PROD_DB_HOST}
+      - DB_PASSWORD=${PROD_DB_PASSWORD}
+      - REDIS_HOST=${PROD_REDIS_HOST}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+    labels:
+      - "deploy.env=production"
+      - "deploy.version=${IMAGE_TAG:-latest}"
+
+  frontend:
+    restart: always
+    environment:
+      - VITE_API_BASE_URL=${PROD_DOMAIN}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  nginx:
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - frontend
+
+  redis:
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  db:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  celery:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+volumes:
+  certbot-www:

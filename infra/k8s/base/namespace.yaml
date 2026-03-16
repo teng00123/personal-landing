@@ -1,0 +1,8 @@
+# infra/k8s/base/namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: personal-landing
+  labels:
+    app: personal-landing
+    managed-by: kustomize
