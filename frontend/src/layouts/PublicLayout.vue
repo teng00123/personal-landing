@@ -12,12 +12,19 @@
 
         <!-- Desktop links -->
         <nav class="nav__links">
-          <router-link to="/">首页</router-link>
-          <router-link to="/articles">文章</router-link>
-          <router-link to="/projects">项目</router-link>
+          <router-link to="/">{{ $t('nav.home') }}</router-link>
+          <router-link to="/articles">{{ $t('nav.articles') }}</router-link>
+          <router-link to="/projects">{{ $t('nav.projects') }}</router-link>
           <router-link v-if="auth.isLoggedIn" to="/admin" class="nav__admin">后台</router-link>
           <router-link v-else to="/login" class="nav__admin">登录</router-link>
         </nav>
+
+        <!-- 工具栏 -->
+        <div class="nav__tools">
+          <SearchModal />
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+        </div>
 
         <!-- Mobile hamburger -->
         <button class="nav__burger" @click="menuOpen = !menuOpen" aria-label="菜单">
@@ -28,11 +35,15 @@
       <!-- Mobile dropdown -->
       <transition name="slide-down">
         <nav v-if="menuOpen" class="nav__mobile" @click="menuOpen = false">
-          <router-link to="/">首页</router-link>
-          <router-link to="/articles">文章</router-link>
-          <router-link to="/projects">项目</router-link>
+          <router-link to="/">{{ $t('nav.home') }}</router-link>
+          <router-link to="/articles">{{ $t('nav.articles') }}</router-link>
+          <router-link to="/projects">{{ $t('nav.projects') }}</router-link>
           <router-link v-if="auth.isLoggedIn" to="/admin">后台</router-link>
           <router-link v-else to="/login">登录</router-link>
+          <div class="mobile-tools">
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+          </div>
         </nav>
       </transition>
     </header>
@@ -62,6 +73,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { profileApi } from '@/api/endpoints.js'
 import { useAuthStore } from '@/store/auth.js'
+import SearchModal from '@/components/SearchModal.vue'
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 
 const auth     = useAuthStore()
 const profile  = ref(null)
@@ -80,13 +94,15 @@ onMounted(async () => {
 /* Nav */
 .nav {
   position: sticky; top: 0; z-index: 100;
-  background: rgba(15,23,42,.9);
+  background: rgba(var(--nav-bg-rgb, 15,23,42), .9);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid var(--c-border);
 }
+[data-theme="light"] .nav { background: rgba(248,250,252,.92); }
+
 .nav__inner {
   display: flex; align-items: center; justify-content: space-between;
-  height: 64px;
+  height: 64px; gap: 16px;
 }
 .nav__logo {
   font-size: 1.125rem; font-weight: 800;
@@ -96,11 +112,11 @@ onMounted(async () => {
 }
 .nav__links { display: flex; gap: 28px; align-items: center; }
 .nav__links a {
-  color: #94a3b8; font-size: .9375rem; font-weight: 500;
+  color: var(--c-text-muted); font-size: .9375rem; font-weight: 500;
   text-decoration: none; transition: color .2s;
 }
 .nav__links a:hover,
-.nav__links a.router-link-active { color: #e2e8f0; }
+.nav__links a.router-link-active { color: var(--c-text); }
 .nav__admin {
   padding: 5px 16px !important;
   background: rgba(59,130,246,.1);
@@ -110,6 +126,9 @@ onMounted(async () => {
 }
 .nav__admin:hover { background: rgba(59,130,246,.22) !important; }
 
+/* 工具栏 */
+.nav__tools { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
 /* Hamburger */
 .nav__burger {
   display: none; flex-direction: column; justify-content: center;
@@ -117,43 +136,47 @@ onMounted(async () => {
 }
 .nav__burger span {
   display: block; width: 22px; height: 2px;
-  background: #94a3b8; border-radius: 2px; transition: background .2s;
+  background: var(--c-text-muted); border-radius: 2px; transition: background .2s;
 }
-.nav__burger:hover span { background: #e2e8f0; }
+.nav__burger:hover span { background: var(--c-text); }
 
 /* Mobile nav */
 .nav__mobile {
   display: flex; flex-direction: column;
   padding: 8px 16px 16px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--c-border);
 }
 .nav__mobile a {
-  padding: 11px 12px; color: #94a3b8; text-decoration: none;
+  padding: 11px 12px; color: var(--c-text-muted); text-decoration: none;
   font-size: .9375rem; font-weight: 500; border-radius: 8px;
   transition: all .15s;
 }
 .nav__mobile a:hover,
-.nav__mobile a.router-link-active { background: #1e293b; color: #e2e8f0; }
+.nav__mobile a.router-link-active { background: var(--c-bg-card); color: var(--c-text); }
+.mobile-tools { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
 
 .slide-down-enter-active, .slide-down-leave-active { transition: all .2s ease; }
 .slide-down-enter-from, .slide-down-leave-to { opacity: 0; transform: translateY(-8px); }
 
 /* Footer */
 .pub-footer {
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid var(--c-border);
   padding: 24px 0;
-  font-size: .875rem; color: #475569;
+  font-size: .875rem; color: var(--c-text-muted);
 }
 .footer-inner {
   display: flex; justify-content: space-between; align-items: center;
   flex-wrap: wrap; gap: 12px;
 }
 .footer-links { display: flex; gap: 20px; }
-.footer-links a { color: #64748b; text-decoration: none; }
-.footer-links a:hover { color: #94a3b8; }
+.footer-links a { color: var(--c-text-muted); text-decoration: none; }
+.footer-links a:hover { color: var(--c-text); }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .nav__links  { display: none; }
   .nav__burger { display: flex; }
+  .nav__tools  { gap: 6px; }
+  .search-trigger .search-hint { display: none; }
+  .search-trigger kbd { display: none; }
 }
 </style>

@@ -1,10 +1,9 @@
 """
-FastAPI 入口 — Iteration 4 (性能优化 + 监控)
-新增:
-  - 结构化 JSON 日志 (logging_config)
-  - Prometheus 指标中间件 + /metrics 端点
-  - GZip 压缩最小阈值调整
-  - /health 增加 Redis 存活检测
+FastAPI 入口 — Iteration 4 (性能优化 + 监控) + Iteration 5 (UX)
+新增 (Iter 5):
+  - 搜索 API /api/v1/search
+  - 社交互动 API /api/v1/social (点赞/评论)
+  - WebSocket 实时通知 /api/v1/ws/notifications
 """
 import os
 from contextlib import asynccontextmanager
@@ -19,15 +18,18 @@ from app.api.articles import router as articles_router
 from app.api.auth import router as auth_router
 from app.api.profile import router as profile_router
 from app.api.projects import router as projects_router
+from app.api.search import router as search_router
+from app.api.social import router as social_router
+from app.api.websocket import router as ws_router
 from app.core.config import settings
 from app.utils.i18n import i18n
 from app.utils.logging_config import setup_logging
 from app.utils.metrics import setup_metrics
 
-# ── 日志初始化（最先执行）─────────────────────────────────
+# ── 日志初始化 ────────────────────────────────────────────
 setup_logging(
     level="DEBUG" if settings.DEBUG else "INFO",
-    json_logs=not settings.DEBUG,   # 生产输出 JSON，开发输出可读格式
+    json_logs=not settings.DEBUG,
 )
 
 import logging
@@ -40,12 +42,20 @@ logger = logging.getLogger("app")
 async def lifespan(app: FastAPI):
     os.makedirs("./uploads/covers", exist_ok=True)
     os.makedirs("./deploy_workspace", exist_ok=True)
+    # 确保评论表存在
+    try:
+        from app.db.session import engine
+        from app.api.social import Comment
+        from app.db.session import Base
+        Base.metadata.create_all(bind=engine, tables=[Comment.__table__])
+    except Exception as e:
+        logger.warning("comment table init skipped: %s", e)
     logger.info("personal-landing API started", extra={"version": "1.0.0"})
     yield
     logger.info("personal-landing API shutdown")
 
 
-# ── App 实例 ──────────────────────────────────────────────
+# ── App ───────────────────────────────────────────────────
 
 app = FastAPI(
     title="Personal Landing API",
@@ -58,13 +68,8 @@ app = FastAPI(
 
 # ── Middleware ─────────────────────────────────────────────
 
-# Prometheus 指标（最外层，覆盖所有路由）
 setup_metrics(app)
-
-# Gzip 压缩（1KB 以上响应才压缩）
 app.add_middleware(GZipMiddleware, minimum_size=1024)
-
-# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -99,6 +104,9 @@ app.include_router(auth_router,     prefix=PREFIX)
 app.include_router(profile_router,  prefix=PREFIX)
 app.include_router(articles_router, prefix=PREFIX)
 app.include_router(projects_router, prefix=PREFIX)
+app.include_router(search_router,   prefix=PREFIX)   # Iter 5
+app.include_router(social_router,   prefix=PREFIX)   # Iter 5
+app.include_router(ws_router,       prefix=PREFIX)   # Iter 5
 
 
 # ── Health Check ──────────────────────────────────────────

@@ -68,5 +68,32 @@
     "projects": "Projects",
     "admin": "Admin",
     "back_to_home": "Back to Home"
+  },
+  "nav": {
+    "home": "Home",
+    "articles": "Articles",
+    "projects": "Projects"
+  },
+  "search": {
+    "placeholder": "Search articles, projects...",
+    "no_results": "No results found",
+    "hot": "Trending"
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light",
+    "auto": "System"
+  },
+  "comments": {
+    "title": "Comments",
+    "placeholder": "Write a comment...",
+    "nickname": "Nickname",
+    "submit": "Submit",
+    "reply": "Reply",
+    "no_comments": "No comments yet"
+  },
+  "like": {
+    "like": "Like",
+    "liked": "Liked"
   }
 }
