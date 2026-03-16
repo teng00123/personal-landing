@@ -1,361 +1,177 @@
-# Personal Landing - 后续迭代路线图
+# Personal Landing — 迭代路线图
 
-> **当前版本**: v1.0.0 | **最后更新**: 2026-03-16
+> **当前版本**: v0.8.x | **最后更新**: 2026-03-16
 > **GitHub**: https://github.com/teng00123/personal-landing
 
 ---
 
 ## 🎯 总体愿景
 
-将Personal Landing打造成为一个**企业级个人品牌展示平台**，具备现代化架构、卓越用户体验和完善的运维体系。
+将 Personal Landing 打造成**企业级个人品牌展示平台**，具备现代化架构、卓越用户体验和完善的运维体系。
 
 ---
 
-## 📈 迭代规划总览
+## 📈 迭代状态总览
 
-| 迭代 | 代号 | 主题 | 预计周期 | 优先级 | 状态 |
-|------|------|------|----------|--------|------|
-| **Iter 4** | Performance | 性能优化与监控体系 | 2周 | 🔴 High | 📋 计划中 |
-| **Iter 5** | UX-Enhance | 用户体验深度增强 | 3周 | 🟡 Medium | 📋 计划中 |
-| **Iter 6** | Security | 安全加固与权限管理 | 2周 | 🔴 High | 📋 计划中 |
-| **Iter 7** | DevOps | 部署运维自动化 | 2周 | 🟡 Medium | 📋 计划中 |
-| **Iter 8** | Advanced | 高级功能扩展 | 4周 | 🟢 Low | 📋 计划中 |
-| **Iter 9** | Mobile | 移动端适配 | 3周 | 🟢 Low | 📋 计划中 |
-
----
-
-## 🚀 Iteration 4 — Performance (性能优化与监控体系)
-
-### 🎯 目标
-提升系统性能，建立完善的监控告警体系
-
-### 📋 功能清单
-
-#### 4.1 前端性能优化
-- [ ] **代码分割** - Vue Router懒加载 + 组件异步加载
-- [ ] **资源压缩** - 图片压缩、CSS/JS Tree Shaking
-- [ ] **缓存策略** - Service Worker + 静态资源CDN
-- [ ] **首屏优化** - 关键资源预加载、SSR准备
-
-#### 4.2 后端性能优化
-- [ ] **数据库优化** - 索引优化、查询缓存、连接池调优
-- [ ] **Redis缓存层** - 热点数据缓存、API响应缓存
-- [ ] **异步处理** - 非核心业务异步化
-- [ ] **分页优化** - 大数据量分页策略
-
-#### 4.3 监控系统
-- [ ] **应用监控** - Prometheus + Grafana仪表板
-- [ ] **日志聚合** - ELK Stack (Elasticsearch + Logstash + Kibana)
-- [ ] **链路追踪** - Jaeger分布式追踪
-- [ ] **性能监控** - APM工具集成 (SkyWalking)
-
-#### 4.4 告警体系
-- [ ] **阈值告警** - CPU/内存/磁盘使用率告警
-- [ ] **错误告警** - 异常率、响应时间告警
-- [ ] **业务告警** - 部署失败、服务不可用告警
-- [ ] **通知渠道** - 邮件、钉钉、企业微信集成
-
-### 🛠️ 技术实现
-```yaml
-# docker-compose.performance.yml
-prometheus:
-  image: prom/prometheus:v2.40.0
-  ports: ["9090:9090"]
-grafana:
-  image: grafana/grafana:9.0.0
-  ports: ["3000:3000"]
-elasticsearch:
-  image: elasticsearch:8.5.0
-  ports: ["9200:9200"]
-```
-
-### 📅 里程碑
-- **Week 1**: 前端性能优化 + 基础监控
-- **Week 2**: 后端优化 + 告警体系搭建
+| 迭代 | 代号 | 主题 | 版本 | 状态 |
+|------|------|------|------|------|
+| Iter 1 | Foundation | 基础架构 | v0.1.0 | ✅ 已完成 |
+| Iter 2 | Content | 内容管理 | v0.2.0 | ✅ 已完成 |
+| Iter 3 | Deploy | 项目部署 | v0.3.0 | ✅ 已完成 |
+| Iter 4 | Performance | 性能优化与监控 | v0.4.0 | ✅ 已完成 |
+| Iter 5 | UX-Enhance | 用户体验增强 | v0.5.0 | ✅ 已完成 |
+| Iter 6 | Security | 安全加固 | v0.6.0 | ✅ 已完成 |
+| Iter 7 | DevOps | 部署运维自动化 | v0.7.0 | ✅ 已完成 |
+| Iter 8 | Advanced | 高级功能扩展 | v0.8.x | 🚧 进行中 |
+| Iter 9 | Mobile | 移动端适配 | v0.9.0 | 📋 计划中 |
+| Iter 10 | Open | 开放平台 | v1.0.0 | 📋 计划中 |
 
 ---
 
-## ✨ Iteration 5 — UX-Enhance (用户体验深度增强)
+## ✅ Iteration 1 — Foundation（基础架构）
 
-### 🎯 目标
-打造极致用户体验，提升用户满意度和留存率
+**目标**: 搭建可运行的全栈脚手架
 
-### 📋 功能清单
-
-#### 5.1 界面体验升级
-- [ ] **主题系统** - 深色/浅色/自动切换 + 自定义主题
-- [ ] **动画效果** - 页面切换、数据加载、交互动画
-- [ ] **响应式设计** - 完美适配各种屏幕尺寸
-- [ ] **无障碍访问** - WCAG 2.1 AA级别合规
-
-#### 5.2 交互体验优化
-- [ ] **智能搜索** - 全文检索 + 模糊匹配 + 搜索建议
-- [ ] **个性化推荐** - 基于用户行为的文章推荐
-- [ ] **实时通知** - WebSocket推送系统消息
-- [ ] **快捷操作** - 键盘快捷键、右键菜单
-
-#### 5.3 内容体验增强
-- [ ] **富文本编辑器** - 支持图表、数学公式、流程图
-- [ ] **多媒体支持** - 视频嵌入、音频播放器
-- [ ] **社交分享** - 一键分享到各大社交平台
-- [ ] **评论系统** - 访客评论、回复通知
-
-#### 5.4 数据分析
-- [ ] **用户行为分析** - 热力图、点击流分析
-- [ ] **内容效果分析** - 阅读完成率、停留时间
-- [ ] **性能分析报告** - 自动生成性能报告
-
-### 🎨 设计系统
-```scss
-// 设计令牌
-$colors: (
-  primary: #3b82f6,
-  secondary: #64748b,
-  success: #10b981,
-  warning: #f59e0b,
-  danger: #ef4444
-);
-
-$spacing: (
-  xs: 0.25rem,
-  sm: 0.5rem,
-  md: 1rem,
-  lg: 1.5rem,
-  xl: 2rem
-);
-```
-
-### 📅 里程碑
-- **Week 1-2**: 界面升级 + 交互优化
-- **Week 3**: 内容增强 + 数据分析
+- [x] FastAPI 后端脚手架（路由/中间件/异常处理）
+- [x] Vue 3 + Vite 前端脚手架
+- [x] MySQL + SQLAlchemy ORM + Alembic 迁移
+- [x] JWT 身份认证（bcrypt + SHA-256）
+- [x] Docker Compose 开发环境
+- [x] 简历/个人信息展示 API
+- [x] GitHub 项目列表展示
 
 ---
 
-## 🔒 Iteration 6 — Security (安全加固与权限管理)
+## ✅ Iteration 2 — Content Management（内容管理）
 
-### 🎯 目标
-建立企业级安全防护体系，保障数据和系统安全
+**目标**: 完整的 Markdown 文章管理系统
 
-### 📋 功能清单
-
-#### 6.1 身份认证升级
-- [ ] **多因子认证** - TOTP + SMS + 邮箱验证
-- [ ] **OAuth 2.0** - GitHub、Google、微信登录
-- [ ] **单点登录** - SAML 2.0集成
-- [ ] **API限流** - 基于IP/用户的请求限制
-
-#### 6.2 权限管理
-- [ ] **RBAC权限模型** - 角色基础访问控制
-- [ ] **细粒度权限** - 功能级、数据级权限控制
-- [ ] **权限审计** - 权限变更日志记录
-- [ ] **临时权限** - 限时访问授权
-
-#### 6.3 数据安全
-- [ ] **数据脱敏** - 敏感信息自动脱敏
-- [ ] **加密存储** - 数据库字段级加密
-- [ ] **备份加密** - 自动备份数据加密
-- [ ] **传输加密** - 强制HTTPS + 证书管理
-
-#### 6.4 安全防护
-- [ ] **WAF集成** - Web应用防火墙
-- [ ] **恶意检测** - SQL注入、XSS攻击检测
-- [ ] **漏洞扫描** - 定期安全扫描
-- [ ] **应急响应** - 安全事件处理流程
-
-### 🔐 安全配置
-```yaml
-# security.yml
-jwt:
-  algorithm: RS256
-  expiration: 3600
-oauth:
-  providers:
-    - github
-    - google
-    - wechat
-rate_limit:
-  window: 900  # 15分钟
-  max_requests: 100
-```
-
-### 📅 里程碑
-- **Week 1**: 认证升级 + 权限管理
-- **Week 2**: 数据安全 + 防护体系
+- [x] Markdown 文件上传与解析
+- [x] 自动提取标题、标签、摘要
+- [x] 文章发布/草稿状态管理
+- [x] 文章阅读量统计
+- [x] 文件附件上传管理
+- [x] 管理员后台 API
 
 ---
 
-## 🛠️ Iteration 7 — DevOps (部署运维自动化)
+## ✅ Iteration 3 — Project Deployment（项目部署）
 
-### 🎯 目标
-实现全自动CI/CD流水线，提升部署效率和可靠性
+**目标**: GitHub 项目一键自动部署
 
-### 📋 功能清单
-
-#### 7.1 CI/CD流水线
-- [ ] **GitHub Actions** - 自动化测试、构建、部署
-- [ ] **多环境部署** - Dev/Staging/Production环境
-- [ ] **蓝绿部署** - 零停机时间部署
-- [ ] **回滚机制** - 一键快速回滚
-
-#### 7.2 基础设施即代码
-- [ ] **Terraform** - 云资源管理
-- [ ] **Ansible** - 配置管理自动化
-- [ ] **Docker Swarm** - 容器编排
-- [ ] **Kubernetes** - 容器集群管理（可选）
-
-#### 7.3 运维自动化
-- [ ] **自动扩缩容** - 基于负载的自动扩缩容
-- [ ] **健康检查** - 服务健康状态监控
-- [ ] **日志轮转** - 自动化日志管理
-- [ ] **证书续期** - SSL证书自动续期
-
-#### 7.4 灾备恢复
-- [ ] **多地备份** - 异地数据备份
-- [ ] **灾难恢复** - 自动化灾难恢复流程
-- [ ] **数据同步** - 实时数据同步机制
-
-### 🚢 部署架构
-```mermaid
-graph TB
-    A[GitHub] --> B[GitHub Actions]
-    B --> C[Build Image]
-    C --> D[Push Registry]
-    D --> E[Staging Deploy]
-    E --> F[Health Check]
-    F --> G[Production Deploy]
-    G --> H[Monitor]
-```
-
-### 📅 里程碑
-- **Week 1**: CI/CD流水线 + IaC
-- **Week 2**: 运维自动化 + 灾备恢复
+- [x] GitHub 项目导入（API 拉取仓库信息）
+- [x] 多框架自动检测（Vue/React/Next.js/FastAPI/Flask/Django）
+- [x] Celery 异步部署任务
+- [x] WebSocket 实时日志推送
+- [x] 端口自动分配（8100-9000）
+- [x] Docker 容器部署支持
 
 ---
 
-## 🌟 Iteration 8 — Advanced (高级功能扩展)
+## ✅ Iteration 4 — Performance & Monitoring（性能优化与监控）
 
-### 🎯 目标
-添加高级功能，提升平台竞争力
+**目标**: 系统性能提升 + 完整可观测性
 
-### 📋 功能清单
-
-#### 8.1 AI功能集成
-- [ ] **智能写作助手** - AI辅助文章创作
-- [ ] **内容摘要** - 自动生成文章摘要
-- [ ] **标签推荐** - AI自动推荐文章标签
-- [ ] **代码审查** - AI代码质量检查
-
-#### 8.2 多媒体功能
-- [ ] **在线IDE** - 浏览器内代码编辑运行
-- [ ] **直播功能** - 技术分享直播集成
-- [ ] **播客支持** - 音频内容管理
-- [ ] **视频教程** - 视频课程管理
-
-#### 8.3 社区功能
-- [ ] **关注系统** - 用户关注、粉丝管理
-- [ ] **点赞收藏** - 内容互动功能
-- [ ] **私信系统** - 用户间消息通信
-- [ ] **活动管理** - 线上/线下活动组织
-
-#### 8.4 商业化功能
-- [ ] **付费专栏** - 会员制内容付费
-- [ ] **打赏功能** - 读者打赏支持
-- [ ] **广告系统** - 精准广告投放
-- [ ] **电商集成** - 周边商品销售
-
-### 🤖 AI集成示例
-```python
-# ai_service.py
-from openai import OpenAI
-
-class AIService:
-    def generate_summary(self, content: str) -> str:
-        # AI生成摘要
-        pass
-    
-    def recommend_tags(self, content: str) -> list:
-        # AI推荐标签
-        pass
-```
-
-### 📅 里程碑
-- **Week 1-2**: AI功能 + 多媒体
-- **Week 3-4**: 社区功能 + 商业化
+- [x] 前端 Vite 代码分割（vendor chunks）
+- [x] PWA / Service Worker（StaleWhileRevalidate + CacheFirst）
+- [x] Terser 生产压缩，移除 console
+- [x] 后端 Redis 异步缓存（`CacheManager` + `@cache()` 装饰器）
+- [x] Prometheus 指标采集中间件 + `/metrics` 端点
+- [x] 结构化 JSON 日志（生产）/ 可读格式（开发）
+- [x] 数据库连接池调优（pool_size 20, max_overflow 30）
+- [x] Prometheus + Grafana + Alertmanager 监控栈
+- [x] 7 条告警规则（CPU/内存/磁盘/Redis/API 错误率/响应时间）
+- [x] Grafana 8 面板概览仪表盘
 
 ---
 
-## 📱 Iteration 9 — Mobile (移动端适配)
+## ✅ Iteration 5 — UX Enhancement（用户体验增强）
 
-### 🎯 目标
-完善移动端体验，覆盖全终端用户
+**目标**: 现代化用户体验，深度交互优化
 
-### 📋 功能清单
-
-#### 9.1 移动端适配
-- [ ] **PWA支持** - 渐进式Web应用
-- [ ] **原生APP** - React Native或Flutter开发
-- [ ] **小程序** - 微信/支付宝小程序
-- [ ] **移动优化** - 触摸优化、手势支持
-
-#### 9.2 移动专属功能
-- [ ] **推送通知** - 移动端消息推送
-- [ ] **离线支持** - 离线内容访问
-- [ ] **相机集成** - 拍照上传、扫码功能
-- [ ] **地理位置** - 基于位置的服务
-
-### 📅 里程碑
-- **Week 1-2**: PWA + 移动优化
-- **Week 3**: 原生APP开发
+- [x] 主题系统（Dark / Light / Auto，跟随系统偏好，localStorage 持久化）
+- [x] 全文搜索（⌘K 唤起，防抖，关键词高亮，热词推荐）
+- [x] WebSocket 实时通知（部署/系统事件，自动重连指数退避）
+- [x] 社交功能（点赞 IP 去重，嵌套评论，XSS 过滤）
+- [x] 页面路由切换动画（opacity + translateY）
+- [x] 移动端工具栏（搜索 + 主题 + 语言切换）
+- [x] 国际化扩展（搜索/主题/评论/点赞 i18n key）
 
 ---
 
-## 📊 成功指标
+## ✅ Iteration 6 — Security Hardening（安全加固）
 
-### 技术指标
-- **性能**: 首屏加载 < 2s，API响应 < 200ms
-- **可用性**: 99.9% uptime
-- **扩展性**: 支持10万+用户访问
-- **安全性**: 零高危漏洞
+**目标**: 企业级安全防护体系
 
-### 业务指标
-- **用户满意度**: > 4.5/5.0
-- **内容产出**: 月均10篇高质量文章
-- **项目部署**: 成功率 > 95%
-- **社区活跃**: 日活用户 > 1000
-
----
-
-## 🔄 迭代管理
-
-### 开发流程
-1. **需求评审** - 每迭代开始前需求确认
-2. **技术方案** - 详细技术设计和评审
-3. **开发实现** - 敏捷开发，两周一个sprint
-4. **测试验收** - 自动化测试 + 人工验收
-5. **部署上线** - 灰度发布 + 全量上线
-6. **回顾优化** - 迭代回顾和经验总结
-
-### 风险控制
-- **技术风险**: 新技术预研、PoC验证
-- **进度风险**: 每周进度跟踪、风险预警
-- **质量风险**: 代码review、自动化测试
-- **资源风险**: 人员备份、外部依赖评估
+- [x] TOTP 双因子认证（MFA），QR 码扫描注册
+- [x] RBAC 角色权限控制（Role/Permission 枚举，依赖注入）
+- [x] Redis 滑动窗口限流中间件
+- [x] IP 封禁管理器
+- [x] 审计日志（AuditLog ORM，同步/异步写入）
+- [x] 安全工具集（email/phone/IP 脱敏，HTML 净化，密码强度检测）
+- [x] Token 刷新、登出、改密 API
+- [x] CI 安全扫描（Bandit / Trivy / OWASP ZAP / safety）
 
 ---
 
-## 📞 联系与支持
+## ✅ Iteration 7 — DevOps Automation（运维自动化）
 
-- **项目负责人**: teng00123
-- **技术讨论**: GitHub Issues
-- **邮件联系**: teng00123@github.com
-- **项目文档**: [GitHub Wiki](https://github.com/teng00123/personal-landing/wiki)
+**目标**: 全套 DevOps 自动化，生产级运维能力
+
+- [x] GitHub Actions 多环境 CI/CD 流水线
+- [x] 蓝绿部署（健康检查 + Nginx 热切换 + 自动回滚）
+- [x] Terraform IaC（AWS EC2 + EIP + SG，staging/production 独立 workspace）
+- [x] Ansible Playbook（common/docker/nginx/app/monitoring 角色）
+- [x] Kubernetes（Deployment + HPA + Ingress + cert-manager）
+- [x] 多环境 Docker Compose（dev/staging/prod）
+- [x] Nginx 生产配置（SSL/HTTP2/HSTS/CSP，双限流区）
+- [x] 自动备份脚本（MySQL + uploads，daily/weekly 保留策略，S3 可选）
+- [x] 健康检查守护进程（3 次失败自动重启 + WeCom 告警）
 
 ---
 
-<div align="center">
+## 🚧 Iteration 8 — Advanced Features（高级功能扩展）
 
-**🚀 让我们一起打造卓越的个人品牌展示平台！**
+**目标**: AI 驱动的高级交互功能
 
-⭐ 如果这个项目对您有帮助，请给它一个星标！
+- [x] AI 对话助手（上下文感知，后端 `/api/v1/ai/*`）
+- [x] Monaco Editor 在线代码编辑器
+- [x] 代码运行沙箱（多语言执行，`/api/v1/sandbox/*`）
+- [x] 社区功能（`/api/v1/community/*`）
+- [ ] AI 代码补全集成
+- [ ] 代码分享与 Fork 功能
+- [ ] 用户活动流/时间线
 
-</div>
+---
+
+## 📋 Iteration 9 — Mobile（移动端适配）
+
+**目标**: 原生移动端体验
+
+- [ ] 响应式布局全面优化（320px-1920px）
+- [ ] 触摸手势支持（滑动翻页、下拉刷新）
+- [ ] PWA 离线功能增强
+- [ ] 移动端导航重设计
+- [ ] 图片懒加载与 WebP 自动转换
+- [ ] 移动端性能优化（首屏 < 2s）
+
+---
+
+## 📋 Iteration 10 — Open Platform（开放平台）
+
+**目标**: 生态开放，支持第三方接入
+
+- [ ] OpenAPI 3.0 完整规范文档
+- [ ] Webhook 事件系统
+- [ ] OAuth2 第三方登录（GitHub / Google）
+- [ ] 开放 API 密钥管理
+- [ ] 插件/主题市场
+- [ ] 多用户支持（SaaS 模式）
+
+---
+
+## 🔗 相关文档
+
+- [CHANGELOG.md](CHANGELOG.md) — 详细变更历史
+- [ITERATION_PLAN.md](ITERATION_PLAN.md) — 各迭代任务清单
+- [后端 API 文档](http://localhost:8000/docs) — Swagger UI（本地运行后访问）
