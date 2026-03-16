@@ -1,85 +1,132 @@
-# Personal Landing 项目文档
+# 🚀 Personal Landing - 全栈个人主页/作品集应用
 
-**🇺🇸 English Version**: [README_EN.md](README_EN.md)
+<div align="center">
 
-## 项目概述
+**[🇺🇸 English Version](README_EN.md)** | **[🇨🇳 中文版本](README.md)**
 
-这是一个全栈个人主页/作品集应用，包含：
-- **后端**: Python + FastAPI + SQLAlchemy + MySQL + Redis + Celery
-- **前端**: Vue 3 + Vite + Element Plus
-- **功能**: 简历展示、Markdown文章管理、GitHub项目自动部署
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
+![Vue](https://img.shields.io/badge/Vue-3.x-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## 快速开始
+</div>
 
-### 环境要求
+---
+
+## 📋 项目概述
+
+一个现代化的全栈个人主页/作品集应用，集成了简历展示、博客管理和项目部署功能。
+
+### 🛠️ 技术栈
+
+| 组件 | 技术选型 |
+|------|----------|
+| **后端** | Python 3.11+ + FastAPI + SQLAlchemy + MySQL + Redis + Celery |
+| **前端** | Vue 3 + Vite + Element Plus |
+| **部署** | Docker + Docker Compose |
+| **任务队列** | Celery + Redis |
+
+### ✨ 核心功能
+
+- 📄 **简历展示** - 在线简历和个人介绍
+- 📝 **Markdown文章管理** - 支持上传、编辑、发布
+- 🚀 **GitHub项目自动部署** - 一键部署多种框架项目
+- 📊 **实时日志查看** - 部署过程透明化
+- 🔐 **JWT身份认证** - 安全的用户管理系统
+
+---
+
+## ⚡ 快速开始
+
+### 📦 环境要求
+
 - Python 3.11+
 - Node.js 20+
 - MySQL 8.0+
 - Redis 7+
 - Docker & Docker Compose
 
-### 安装步骤
+### 🔧 安装步骤
 
-1. **克隆项目**
-   ```bash
-   git clone https://github.com/teng00123/personal-landing.git
-   cd personal-landing
-   ```
+#### 1️⃣ 克隆项目
+```bash
+git clone https://github.com/teng00123/personal-landing.git
+cd personal-landing
+```
 
-2. **后端设置**
-   ```bash
-   cd backend
-   pip install -r requirements.txt
-   cp .env.example .env
-   # 编辑 .env 文件，配置数据库等信息
-   ```
+#### 2️⃣ 后端设置
+```bash
+cd backend
+pip install -r requirements.txt
+cp .env.example .env
+# 编辑 .env 文件，配置数据库等信息
+```
 
-3. **前端设置**
-   ```bash
-   cd frontend
-   npm install
-   cp .env.example .env
-   ```
+#### 3️⃣ 前端设置
+```bash
+cd frontend
+npm install
+cp .env.example .env
+```
 
-4. **启动服务**
-   ```bash
-   # 使用 Docker Compose (推荐)
-   docker compose up -d
-   
-   # 或手动启动
-   # 后端: uvicorn app.main:app --reload
-   # 前端: npm run dev
-   # 数据库: 确保 MySQL 和 Redis 运行
-   ```
+#### 4️⃣ 启动服务
 
-## API 文档
+**🐳 Docker方式（推荐）**
+```bash
+docker compose up -d
+```
 
-启动后访问：
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+**🔧 手动方式**
+```bash
+# 后端服务
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-## 主要功能
+# 前端服务
+cd frontend
+npm run dev
 
-### 用户认证
-- JWT Token 认证
-- 管理员权限控制
-- 密码加密存储 (bcrypt + SHA-256 pre-hash)
+# 确保 MySQL 和 Redis 正在运行
+```
 
-### 文章管理
-- Markdown 文件上传
-- 自动提取标题和标签
-- 发布状态管理
-- 阅读统计
+### 📚 API文档
 
-### 项目管理
-- GitHub 项目导入
-- 自动部署 (支持多种框架)
-- 实时日志查看
-- 端口自动分配
+启动后访问以下地址：
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-## Celery 任务队列启动说明
+---
 
-### Docker 方式（推荐）
+## 🎯 主要功能详解
+
+### 🔐 用户认证系统
+- ✅ JWT Token 认证机制
+- 👑 管理员权限精细控制
+- 🔒 密码加密存储 (bcrypt + SHA-256 pre-hash)
+
+### 📝 文章管理系统
+- 📤 Markdown 文件上传
+- 🏷️ 自动提取标题和标签
+- 📅 发布状态管理
+- 📈 阅读统计分析
+
+### 🚀 项目部署系统
+- 🔗 GitHub 项目导入
+- ⚡ 自动部署（支持多种框架）
+- 📋 实时日志查看
+- 🎲 端口自动分配 (8100-9000)
+
+**支持的部署框架：**
+- Vue/React/Next.js 项目构建
+- FastAPI/Flask/Django 项目部署
+- 静态网站托管
+- Docker 容器部署
+
+---
+
+## ⚙️ Celery 任务队列
+
+### 🐳 Docker 方式（推荐）
 ```bash
 # 启动 Celery Worker（处理部署任务）
 docker-compose up -d celery
@@ -87,13 +134,12 @@ docker-compose up -d celery
 # 查看 Celery 日志
 docker-compose logs -f celery
 
-# 启动 Celery Beat（定时任务，如果需要）
+# 启动 Celery Beat（定时任务）
 docker-compose up -d celery-beat
 ```
 
-### 本地开发方式
+### 💻 本地开发方式
 ```bash
-# 进入后端目录
 cd backend
 
 # 启动 Celery Worker
@@ -106,13 +152,7 @@ celery -A app.tasks.celery_app:celery_app beat --loglevel=info
 celery -A app.tasks.celery_app:celery_app flower
 ```
 
-### Celery 任务类型
-- **项目部署**: 自动克隆 GitHub 项目并部署
-- **支持框架**: Vue/React/Next.js/Node/FastAPI/Flask/Django/Static/Docker
-- **端口分配**: 自动扫描 8100-9000 端口范围
-- **日志查看**: 通过 API `/projects/{id}/logs` 实时查看部署日志
-
-### 常用 Celery 命令
+### 🔧 常用 Celery 命令
 ```bash
 # 查看活跃任务
 celery -A app.tasks.celery_app:celery_app inspect active
@@ -124,22 +164,17 @@ celery -A app.tasks.celery_app:celery_app inspect registered
 celery -A app.tasks.celery_app:celery_app purge
 ```
 
-## 本地开发
-### 部署功能
-- Vue/React/Next.js 项目构建
-- FastAPI/Flask/Django 项目部署
-- 静态网站托管
-- Docker 容器部署
+---
 
-## 开发指南
+## 💻 开发指南
 
-### 代码规范
-- 使用 Conventional Commits 提交规范
-- 后端: ruff 格式化 + mypy 类型检查
-- 前端: ESLint + Prettier
-- 所有 PR 必须通过 CI 检查
+### 📏 代码规范
+- 📝 使用 [Conventional Commits](https://conventionalcommits.org/) 提交规范
+- 🐍 后端: ruff 格式化 + mypy 类型检查
+- ⚡ 前端: ESLint + Prettier
+- ✅ 所有 PR 必须通过 CI 检查
 
-### 测试
+### 🧪 测试
 ```bash
 # 后端测试
 cd backend
@@ -150,7 +185,7 @@ cd frontend
 npm run test
 ```
 
-### 数据库迁移
+### 🗄️ 数据库迁移
 ```bash
 # 创建迁移
 alembic revision --autogenerate -m "描述"
@@ -159,37 +194,55 @@ alembic revision --autogenerate -m "描述"
 alembic upgrade head
 ```
 
-## 部署
+---
 
-### Docker 部署
+## 🚢 部署
+
+### 🐳 Docker 部署
 ```bash
 docker compose up -d
 ```
 
-### 生产环境
-- 使用 Nginx 反向代理
-- 配置 SSL 证书
-- 设置防火墙规则
-- 定期备份数据库
+### 🏭 生产环境配置
+- 🌐 使用 Nginx 反向代理
+- 🔐 配置 SSL 证书
+- 🛡️ 设置防火墙规则
+- 💾 定期备份数据库
 
-## 故障排除
+---
 
-常见问题及解决方案请参考 README.md
+## 🔧 故障排除
 
-## 贡献指南
+常见问题及解决方案请参考本文件或提交 Issue。
 
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feat/新功能`)
-3. 提交更改 (`git commit -m 'feat: 添加新功能'`)
-4. 推送分支 (`git push origin feat/新功能`)
-5. 创建 Pull Request
+---
 
-## 许可证
+## 🤝 贡献指南
 
-MIT License
+欢迎贡献代码！请遵循以下步骤：
 
-## 联系方式
+1. 🍴 Fork 本项目
+2. 🌿 创建功能分支 (`git checkout -b feat/新功能`)
+3. ✨ 提交更改 (`git commit -m 'feat: 添加新功能'`)
+4. 📤 推送分支 (`git push origin feat/新功能`)
+5. 🔄 创建 Pull Request
 
-- 作者: teng00123
-- GitHub: https://github.com/teng00123
-- 邮箱: teng00123@github.com
+---
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 👤 联系方式
+
+- **作者**: teng00123
+- **GitHub**: [@teng00123](https://github.com/teng00123)
+- **邮箱**: teng00123@github.com
+
+---
+
+<div align="center">
+
+⭐ 如果这个项目对您有帮助，请给它一个星标！
+
+</div>
