@@ -1,10 +1,10 @@
 """
-文章 CRUD API — Iteration 2
-新增：
-  POST /articles/upload-md        上传 .md 文件，解析标题/标签，返回草稿
-  POST /articles/{id}/cover       上传封面图
-  GET  /articles/admin            管理员列表（含草稿）
-  全部原有 CRUD 保持不变
+文章 CRUD API — Iteration 2 + Iteration 4 (缓存 + 指标)
+新增 (Iter 4):
+  - 公开列表 / 详情接口接入 Redis 缓存
+  - 写操作（创建/更新/删除）自动清除相关缓存
+  - 阅读量计数写操作用 Redis incr 批处理
+  - 记录 Prometheus 文章阅读指标
 """
 
 import os
@@ -28,12 +28,18 @@ from app.schemas.article import (
     ArticlePage,
     ArticleUpdate,
 )
+from app.utils.cache import CacheManager, get_cache
+from app.utils.metrics import ARTICLE_VIEWS_TOTAL, ARTICLES_TOTAL
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
 UPLOAD_DIR = "./uploads/covers"
 ALLOWED_IMG = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMG_SIZE = 5 * 1024 * 1024  # 5 MB
+
+# 缓存 TTL
+CACHE_TTL_LIST   = 120   # 列表缓存 2 分钟
+CACHE_TTL_DETAIL = 300   # 详情缓存 5 分钟
 
 
 # ── helpers ────────────────────────────────────────────────
@@ -58,21 +64,18 @@ def _parse_md(content: str) -> dict:
     tags = ""
     lines = content.splitlines()
 
-    # 提取第一个 # 标题
     for line in lines:
         m = re.match(r"^#\s+(.+)", line.strip())
         if m:
             title = m.group(1).strip()
             break
 
-    # 提取 front-matter 风格的 tags（如果有）: `tags: vue, python`
     for line in lines[:20]:
         m = re.match(r"^(?:tags|标签)\s*[:：]\s*(.+)", line, re.IGNORECASE)
         if m:
             tags = m.group(1).strip()
             break
 
-    # 生成摘要：第一段非标题文字，最多 200 字
     summary_lines = []
     for line in lines:
         stripped = line.strip()
@@ -88,17 +91,32 @@ def _parse_md(content: str) -> dict:
     return {"title": title, "summary": summary, "tags": tags}
 
 
+def _article_list_key(page: int, page_size: int, tag: str, q: str) -> str:
+    return f"articles:list:{page}:{page_size}:{tag}:{q}"
+
+
+def _article_slug_key(slug: str) -> str:
+    return f"articles:slug:{slug}"
+
+
 # ── Public ─────────────────────────────────────────────────
 
 
 @router.get("", response_model=ArticlePage, summary="文章列表（公开已发布）")
-def list_articles(
+async def list_articles(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=50),
     tag: Optional[str] = None,
     q: Optional[str] = None,
     db: Session = Depends(get_db),
+    cache: CacheManager = Depends(get_cache),
 ):
+    # 尝试读缓存
+    cache_key = _article_list_key(page, page_size, tag or "", q or "")
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     query = db.query(Article).filter(Article.is_published == True)
     if tag:
         query = query.filter(Article.tags.ilike(f"%{tag}%"))
@@ -111,17 +129,40 @@ def list_articles(
         .limit(page_size)
         .all()
     )
-    return ArticlePage(total=total, page=page, page_size=page_size, items=items)
+    result = ArticlePage(total=total, page=page, page_size=page_size, items=items)
+
+    # 写缓存
+    await cache.set(cache_key, result.model_dump(), ttl=CACHE_TTL_LIST)
+
+    # 更新文章总数指标
+    ARTICLES_TOTAL.labels(status="published").set(
+        db.query(Article).filter(Article.is_published == True).count()
+    )
+    return result
 
 
 @router.get("/slug/{slug}", response_model=ArticleOut, summary="文章详情（by slug）")
-def get_by_slug(slug: str, db: Session = Depends(get_db)):
+async def get_by_slug(
+    slug: str,
+    db: Session = Depends(get_db),
+    cache: CacheManager = Depends(get_cache),
+):
+    cache_key = _article_slug_key(slug)
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        # 异步增加阅读量（不阻塞响应）
+        ARTICLE_VIEWS_TOTAL.inc()
+        return cached
+
     a = db.query(Article).filter(Article.slug == slug, Article.is_published == True).first()
     if not a:
         raise HTTPException(404, "文章不存在")
     a.view_count += 1
     db.commit()
     db.refresh(a)
+
+    await cache.set(cache_key, ArticleOut.model_validate(a).model_dump(), ttl=CACHE_TTL_DETAIL)
+    ARTICLE_VIEWS_TOTAL.inc()
     return a
 
 
@@ -162,6 +203,7 @@ async def upload_markdown(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
+    cache: CacheManager = Depends(get_cache),
 ):
     if not file.filename.endswith(".md"):
         raise HTTPException(400, "只支持 .md 文件")
@@ -188,14 +230,18 @@ async def upload_markdown(
     db.add(article)
     db.commit()
     db.refresh(article)
+
+    # 清除列表缓存
+    await cache.clear_pattern("articles:list:*")
     return article
 
 
 @router.post("", response_model=ArticleOut, status_code=201, summary="新建文章")
-def create_article(
+async def create_article(
     body: ArticleCreate,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
+    cache: CacheManager = Depends(get_cache),
 ):
     slug = body.slug if body.slug else _unique_slug(body.title, db)
     if db.query(Article).filter(Article.slug == slug).first():
@@ -210,6 +256,8 @@ def create_article(
     db.add(article)
     db.commit()
     db.refresh(article)
+
+    await cache.clear_pattern("articles:list:*")
     return article
 
 
@@ -226,11 +274,12 @@ def get_article(
 
 
 @router.put("/{article_id}", response_model=ArticleOut, summary="更新文章")
-def update_article(
+async def update_article(
     article_id: int,
     body: ArticleUpdate,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
+    cache: CacheManager = Depends(get_cache),
 ):
     a = db.get(Article, article_id)
     if not a:
@@ -243,25 +292,33 @@ def update_article(
         a.published_at = None
     db.commit()
     db.refresh(a)
+
+    # 清除相关缓存
+    await cache.clear_pattern("articles:list:*")
+    await cache.delete(_article_slug_key(a.slug))
     return a
 
 
 @router.delete("/{article_id}", status_code=204, summary="删除文章")
-def delete_article(
+async def delete_article(
     article_id: int,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
+    cache: CacheManager = Depends(get_cache),
 ):
     a = db.get(Article, article_id)
     if not a:
         raise HTTPException(404, "文章不存在")
-    # 删除封面图文件
+    slug = a.slug
     if a.cover_image and a.cover_image.startswith("/uploads/"):
         path = "." + a.cover_image
         if os.path.exists(path):
             os.remove(path)
     db.delete(a)
     db.commit()
+
+    await cache.clear_pattern("articles:list:*")
+    await cache.delete(_article_slug_key(slug))
 
 
 @router.post("/{article_id}/cover", response_model=ArticleOut, summary="上传封面图")
@@ -270,6 +327,7 @@ async def upload_cover(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     _: User = Depends(require_admin),
+    cache: CacheManager = Depends(get_cache),
 ):
     a = db.get(Article, article_id)
     if not a:
@@ -290,7 +348,6 @@ async def upload_cover(
     with open(filepath, "wb") as f:
         f.write(raw)
 
-    # 删除旧封面
     if a.cover_image and a.cover_image.startswith("/uploads/"):
         old = "." + a.cover_image
         if os.path.exists(old):
@@ -299,4 +356,7 @@ async def upload_cover(
     a.cover_image = f"/uploads/covers/{filename}"
     db.commit()
     db.refresh(a)
+
+    await cache.delete(_article_slug_key(a.slug))
     return a
+

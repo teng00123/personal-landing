@@ -1,0 +1,86 @@
+groups:
+  - name: api_alerts
+    rules:
+
+      # API 错误率超过 5%
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status_code=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API 错误率过高"
+          description: "过去5分钟 API 错误率 {{ printf \"%.1f\" $value | humanizePercentage }}，超过 5% 阈值"
+
+      # API P95 响应时间超过 1 秒
+      - alert: SlowAPIResponse
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, endpoint)
+          ) > 1.0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API 响应时间过慢"
+          description: "接口 {{ $labels.endpoint }} P95 响应时间 {{ $value | humanizeDuration }} 超过 1s"
+
+  - name: system_alerts
+    rules:
+
+      # CPU 使用率超过 80%
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU 使用率过高"
+          description: "实例 {{ $labels.instance }} CPU 使用率 {{ printf \"%.1f\" $value }}%"
+
+      # 内存使用率超过 85%
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "实例 {{ $labels.instance }} 内存使用率 {{ printf \"%.1f\" $value }}%"
+
+      # 磁盘使用率超过 90%
+      - alert: HighDiskUsage
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘空间不足"
+          description: "实例 {{ $labels.instance }} 磁盘 {{ $labels.mountpoint }} 使用率 {{ printf \"%.1f\" $value }}%"
+
+  - name: redis_alerts
+    rules:
+
+      # Redis 内存使用率超过 80%
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 内存使用率过高"
+          description: "Redis 内存使用率 {{ printf \"%.1f\" $value | humanizePercentage }}"
+
+      # Redis 连接数超过 500
+      - alert: RedisTooManyConnections
+        expr: redis_connected_clients > 500
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis 连接数过多"
+          description: "Redis 当前连接数 {{ $value }}"
