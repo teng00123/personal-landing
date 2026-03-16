@@ -1,0 +1,72 @@
+{
+  "home": {
+    "title": "Personal Homepage",
+    "subtitle": "Welcome to my personal space",
+    "view_projects": "View Projects",
+    "read_articles": "Read Articles",
+    "contact_me": "Contact Me"
+  },
+  "articles": {
+    "title": "Articles",
+    "published": "Published",
+    "draft": "Draft",
+    "read_more": "Read More",
+    "no_articles": "No articles yet",
+    "tags": "Tags",
+    "views": "Views",
+    "created_at": "Created At"
+  },
+  "projects": {
+    "title": "Projects",
+    "deployed": "Deployed",
+    "deploying": "Deploying",
+    "failed": "Deploy Failed",
+    "view_logs": "View Logs",
+    "deploy_project": "Deploy Project",
+    "framework": "Framework",
+    "status": "Status",
+    "port": "Port",
+    "no_projects": "No projects yet"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "articles": "Article Management",
+    "projects": "Project Management",
+    "profile": "Profile",
+    "logout": "Logout",
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "login_title": "Admin Login"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "loading": "Loading...",
+    "confirm_delete": "Are you sure to delete?",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "messages": {
+    "login_success": "Login successful",
+    "login_failed": "Login failed, please check username and password",
+    "article_created": "Article created successfully",
+    "article_updated": "Article updated successfully",
+    "article_deleted": "Article deleted successfully",
+    "project_deployed": "Project deployed successfully",
+    "project_deploy_failed": "Project deployment failed",
+    "network_error": "Network error, please try again later"
+  },
+  "navigation": {
+    "home": "Home",
+    "articles": "Articles",
+    "projects": "Projects",
+    "admin": "Admin",
+    "back_to_home": "Back to Home"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "home": {
+    "title": "个人主页",
+    "subtitle": "欢迎来到我的个人空间",
+    "view_projects": "查看项目",
+    "read_articles": "阅读文章",
+    "contact_me": "联系我"
+  },
+  "articles": {
+    "title": "文章列表",
+    "published": "已发布",
+    "draft": "草稿",
+    "read_more": "阅读更多",
+    "no_articles": "暂无文章",
+    "tags": "标签",
+    "views": "浏览量",
+    "created_at": "创建时间"
+  },
+  "projects": {
+    "title": "项目展示",
+    "deployed": "已部署",
+    "deploying": "部署中",
+    "failed": "部署失败",
+    "view_logs": "查看日志",
+    "deploy_project": "部署项目",
+    "framework": "框架",
+    "status": "状态",
+    "port": "端口",
+    "no_projects": "暂无项目"
+  },
+  "admin": {
+    "dashboard": "仪表板",
+    "articles": "文章管理",
+    "projects": "项目管理",
+    "profile": "个人资料",
+    "logout": "退出登录",
+    "login": "登录",
+    "username": "用户名",
+    "password": "密码",
+    "login_title": "管理员登录"
+  },
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "search": "搜索",
+    "filter": "筛选",
+    "loading": "加载中...",
+    "confirm_delete": "确定要删除吗？",
+    "yes": "是",
+    "no": "否"
+  },
+  "messages": {
+    "login_success": "登录成功",
+    "login_failed": "登录失败，请检查用户名和密码",
+    "article_created": "文章创建成功",
+    "article_updated": "文章更新成功",
+    "article_deleted": "文章删除成功",
+    "project_deployed": "项目部署成功",
+    "project_deploy_failed": "项目部署失败",
+    "network_error": "网络错误，请稍后重试"
+  },
+  "navigation": {
+    "home": "首页",
+    "articles": "文章",
+    "projects": "项目",
+    "admin": "管理",
+    "back_to_home": "返回首页"
+  }
+}

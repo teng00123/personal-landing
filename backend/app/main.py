@@ -3,7 +3,7 @@ import os
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
@@ -14,6 +14,7 @@ from app.api.auth import router as auth_router
 from app.api.profile import router as profile_router
 from app.api.projects import router as projects_router
 from app.core.config import settings
+from app.utils.i18n import i18n, get_i18n
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,7 +34,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Personal Landing API",
-    description="个人主页后端接口 — 简历 / 文章 / 项目自动部署",
+    description=i18n.t("messages.welcome_message", default="个人主页后端接口 — 简历 / 文章 / 项目自动部署"),
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
@@ -73,13 +74,15 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
-    return JSONResponse(status_code=404, content={"detail": "资源不存在"})
+    message = i18n.t("errors.article_not_found")
+    return JSONResponse(status_code=404, content={"detail": message})
 
 
 @app.exception_handler(500)
 async def server_error_handler(request: Request, exc):
     logger.exception("未处理异常: %s %s", request.method, request.url.path)
-    return JSONResponse(status_code=500, content={"detail": "服务器内部错误，请稍后重试"})
+    message = i18n.t("errors.internal_server_error")
+    return JSONResponse(status_code=500, content={"detail": message})
 
 
 # ── Static files ───────────────────────────────────────────
@@ -96,6 +99,6 @@ app.include_router(articles_router, prefix=PREFIX)
 app.include_router(projects_router, prefix=PREFIX)
 
 
-@app.get("/health", tags=["health"], summary="健康检查")
+@app.get("/health", tags=["health"], summary=i18n.t("health_check"))
 def health():
     return {"status": "ok", "version": app.version}

@@ -1,0 +1,31 @@
+{
+  "errors": {
+    "authentication_failed": "认证失败",
+    "permission_denied": "权限不足",
+    "invalid_token": "无效的令牌",
+    "expired_token": "令牌已过期",
+    "user_not_found": "用户不存在",
+    "invalid_credentials": "用户名或密码错误",
+    "article_not_found": "文章不存在",
+    "project_not_found": "项目不存在",
+    "insufficient_balance": "余额不足",
+    "internal_server_error": "服务器内部错误"
+  },
+  "messages": {
+    "login_success": "登录成功",
+    "logout_success": "登出成功",
+    "article_created": "文章创建成功",
+    "article_updated": "文章更新成功",
+    "article_deleted": "文章删除成功",
+    "project_created": "项目创建成功",
+    "project_deployed": "项目部署成功",
+    "project_deploy_failed": "项目部署失败",
+    "profile_updated": "个人资料更新成功"
+  },
+  "validation": {
+    "required_field": "{field} 是必填字段",
+    "invalid_email": "邮箱格式不正确",
+    "password_too_short": "密码长度不能少于8位",
+    "title_too_long": "标题长度不能超过200字符"
+  }
+}

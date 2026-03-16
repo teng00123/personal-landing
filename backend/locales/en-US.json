@@ -1,0 +1,31 @@
+{
+  "errors": {
+    "authentication_failed": "Authentication failed",
+    "permission_denied": "Permission denied",
+    "invalid_token": "Invalid token",
+    "expired_token": "Token expired",
+    "user_not_found": "User not found",
+    "invalid_credentials": "Invalid username or password",
+    "article_not_found": "Article not found",
+    "project_not_found": "Project not found",
+    "insufficient_balance": "Insufficient balance",
+    "internal_server_error": "Internal server error"
+  },
+  "messages": {
+    "login_success": "Login successful",
+    "logout_success": "Logout successful",
+    "article_created": "Article created successfully",
+    "article_updated": "Article updated successfully",
+    "article_deleted": "Article deleted successfully",
+    "project_created": "Project created successfully",
+    "project_deployed": "Project deployed successfully",
+    "project_deploy_failed": "Project deployment failed",
+    "profile_updated": "Profile updated successfully"
+  },
+  "validation": {
+    "required_field": "{field} is required",
+    "invalid_email": "Invalid email format",
+    "password_too_short": "Password must be at least 8 characters",
+    "title_too_long": "Title cannot exceed 200 characters"
+  }
+}
