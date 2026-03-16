@@ -16,7 +16,7 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Session, relationship
 
 from app.db.session import Base, get_db
-from app.utils.cache import get_cache, CacheManager
+from app.utils.cache import CacheManager, get_cache
 
 router = APIRouter(prefix="/social", tags=["social"])
 logger = logging.getLogger(__name__)
@@ -55,7 +55,7 @@ class CommentOut(BaseModel):
     nickname:   str
     content:    str
     created_at: datetime
-    replies:    list["CommentOut"] = []
+    replies:    list[CommentOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -78,12 +78,10 @@ async def toggle_like(
 
     already = await redis.sismember(f"pl:{ip_set_key}", ip)
     if already:
-        # 取消点赞
         await redis.srem(f"pl:{ip_set_key}", ip)
         count = await redis.decr(f"pl:{count_key}")
         return {"liked": False, "count": max(0, int(count))}
     else:
-        # 点赞
         await redis.sadd(f"pl:{ip_set_key}", ip)
         count = await redis.incr(f"pl:{count_key}")
         return {"liked": True, "count": int(count)}
@@ -101,10 +99,9 @@ async def get_likes(article_id: int):
 
 @router.get("/articles/{article_id}/comments", response_model=list[CommentOut], summary="获取文章评论")
 def list_comments(article_id: int, db: Session = Depends(get_db)):
-    # 只返回顶层评论（含嵌套 replies）
     top = (
         db.query(Comment)
-        .filter(Comment.article_id == article_id, Comment.parent_id == None)
+        .filter(Comment.article_id == article_id, Comment.parent_id.is_(None))
         .order_by(Comment.created_at)
         .all()
     )
@@ -124,7 +121,6 @@ def create_comment(
         if not parent or parent.article_id != article_id:
             raise HTTPException(404, "父评论不存在")
 
-    # 简单内容过滤（生产中应接入内容安全 API）
     blocked = ["<script", "javascript:", "data:text"]
     for b in blocked:
         if b.lower() in body.content.lower():

@@ -13,7 +13,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import desc, or_, text
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db

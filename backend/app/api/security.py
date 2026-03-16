@@ -17,7 +17,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
-from sqlalchemy import Boolean, Column, String
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
@@ -320,17 +319,17 @@ def list_audit_logs(
         "size": size,
         "items": [
             {
-                "id":          l.id,
-                "user_id":     l.user_id,
-                "username":    l.username,
-                "action":      l.action,
-                "resource":    l.resource,
-                "resource_id": l.resource_id,
-                "detail":      l.detail,
-                "ip_address":  l.ip_address,
-                "status":      l.status,
-                "created_at":  l.created_at.isoformat() if l.created_at else None,
+                "id":          log.id,
+                "user_id":     log.user_id,
+                "username":    log.username,
+                "action":      log.action,
+                "resource":    log.resource,
+                "resource_id": log.resource_id,
+                "detail":      log.detail,
+                "ip_address":  log.ip_address,
+                "status":      log.status,
+                "created_at":  log.created_at.isoformat() if log.created_at else None,
             }
-            for l in logs
+            for log in logs
         ],
     }
