@@ -1,0 +1,36 @@
+# docker-compose.staging.yml — Staging 覆盖配置
+# 用法: docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+
+version: "3.9"
+
+services:
+  backend:
+    environment:
+      - DEBUG=false
+      - APP_SECRET_KEY=${STAGING_SECRET_KEY:-staging-secret-change-me}
+      - ALLOWED_ORIGINS=https://staging.example.com
+    labels:
+      - "deploy.env=staging"
+      - "deploy.version=${IMAGE_TAG:-latest}"
+
+  frontend:
+    environment:
+      - VITE_API_BASE_URL=https://staging.example.com
+    labels:
+      - "deploy.env=staging"
+
+  nginx:
+    ports:
+      - "8080:80"   # staging 暴露 8080，不占用 80
+    volumes:
+      - ./nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro
+
+  # staging 环境也跑监控，但降低保留时间
+  prometheus:
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=3d"   # staging 只保留 3 天
+
+  grafana:
+    environment:
+      - GF_SERVER_ROOT_URL=https://staging.example.com/grafana

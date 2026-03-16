@@ -1,0 +1,17 @@
+# /etc/logrotate.d/personal-landing
+# 安装: sudo cp infra/logrotate/personal-landing /etc/logrotate.d/
+
+/opt/personal-landing/logs/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 0640 ubuntu ubuntu
+    sharedscripts
+    postrotate
+        docker compose -f /opt/personal-landing/docker-compose.yml \
+            kill -s USR1 backend celery 2>/dev/null || true
+    endscript
+}

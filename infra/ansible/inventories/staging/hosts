@@ -1,0 +1,12 @@
+[appservers]
+app ansible_host={{ staging_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/staging_key
+
+[webservers]
+app ansible_host={{ staging_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/staging_key
+
+[monitoring]
+app ansible_host={{ staging_ip }} ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/staging_key
+
+[all:vars]
+deploy_env=staging
+app_branch=main

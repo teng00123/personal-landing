@@ -1,0 +1,26 @@
+# infra/ansible/site.yml — 主 Playbook
+---
+- name: 基础环境配置
+  hosts: all
+  become: true
+  roles:
+    - common
+    - docker
+
+- name: Nginx 配置
+  hosts: webservers
+  become: true
+  roles:
+    - nginx
+
+- name: 应用部署
+  hosts: appservers
+  become: true
+  roles:
+    - app
+
+- name: 监控部署
+  hosts: monitoring
+  become: true
+  roles:
+    - monitoring
