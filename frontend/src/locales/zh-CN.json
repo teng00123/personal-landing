@@ -68,5 +68,32 @@
     "projects": "项目",
     "admin": "管理",
     "back_to_home": "返回首页"
+  },
+  "nav": {
+    "home": "首页",
+    "articles": "文章",
+    "projects": "项目"
+  },
+  "search": {
+    "placeholder": "搜索文章、项目...",
+    "no_results": "未找到相关内容",
+    "hot": "热门搜索"
+  },
+  "theme": {
+    "dark": "深色",
+    "light": "浅色",
+    "auto": "跟随系统"
+  },
+  "comments": {
+    "title": "评论",
+    "placeholder": "写下你的评论...",
+    "nickname": "昵称",
+    "submit": "发表",
+    "reply": "回复",
+    "no_comments": "暂无评论"
+  },
+  "like": {
+    "like": "点赞",
+    "liked": "已点赞"
   }
 }
