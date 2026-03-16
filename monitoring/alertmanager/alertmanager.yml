@@ -1,0 +1,47 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'alert@example.com'
+  smtp_auth_username: 'alert@example.com'
+  smtp_auth_password: 'your_password'
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'severity']
+  group_wait:      30s   # 收集同组告警的等待时间
+  group_interval:  5m    # 同组重复发送间隔
+  repeat_interval: 4h    # 未恢复告警重发间隔
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-channel'
+      repeat_interval: 1h
+
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'teng00123@example.com'
+        subject: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        html: |
+          <h3>{{ .CommonLabels.alertname }}</h3>
+          {{ range .Alerts }}
+          <p><b>描述:</b> {{ .Annotations.description }}</p>
+          <p><b>时间:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}</p>
+          {{ end }}
+
+  - name: 'critical-channel'
+    email_configs:
+      - to: 'teng00123@example.com'
+        subject: '🚨 [CRITICAL] {{ .CommonLabels.alertname }}'
+    # 企业微信 webhook（替换 key）
+    webhook_configs:
+      - url: 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY'
+        send_resolved: true
+
+inhibit_rules:
+  # critical 告警触发时，抑制同实例的 warning
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['instance']
