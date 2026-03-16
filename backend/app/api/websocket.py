@@ -7,7 +7,6 @@ WebSocket 实时通知 — Iteration 5
 """
 import asyncio
 import logging
-from typing import Dict, Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 class ConnectionManager:
     def __init__(self):
         # channel → set of websockets
-        self._channels: Dict[str, Set[WebSocket]] = {}
+        self._channels: dict[str, set[WebSocket]] = {}
 
     async def connect(self, ws: WebSocket, channel: str = "system"):
         await ws.accept()
@@ -76,7 +75,7 @@ async def ws_notifications(websocket: WebSocket, channel: str = "system"):
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30)
                 if data == "ping":
                     await websocket.send_json({"type": "pong"})
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # 心跳
                 await websocket.send_json({"type": "heartbeat"})
     except WebSocketDisconnect:

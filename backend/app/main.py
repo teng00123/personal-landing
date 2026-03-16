@@ -19,12 +19,14 @@ from app.api.auth import router as auth_router
 from app.api.profile import router as profile_router
 from app.api.projects import router as projects_router
 from app.api.search import router as search_router
+from app.api.security import router as security_router
 from app.api.social import router as social_router
 from app.api.websocket import router as ws_router
 from app.core.config import settings
 from app.utils.i18n import i18n
 from app.utils.logging_config import setup_logging
 from app.utils.metrics import setup_metrics
+from app.utils.rate_limit import RateLimitMiddleware
 
 # ── 日志初始化 ────────────────────────────────────────────
 setup_logging(
@@ -42,14 +44,15 @@ logger = logging.getLogger("app")
 async def lifespan(app: FastAPI):
     os.makedirs("./uploads/covers", exist_ok=True)
     os.makedirs("./deploy_workspace", exist_ok=True)
-    # 确保评论表存在
+    # 确保审计日志表存在
     try:
         from app.db.session import engine
         from app.api.social import Comment
+        from app.utils.audit import AuditLog
         from app.db.session import Base
-        Base.metadata.create_all(bind=engine, tables=[Comment.__table__])
+        Base.metadata.create_all(bind=engine, tables=[Comment.__table__, AuditLog.__table__])
     except Exception as e:
-        logger.warning("comment table init skipped: %s", e)
+        logger.warning("table init skipped: %s", e)
     logger.info("personal-landing API started", extra={"version": "1.0.0"})
     yield
     logger.info("personal-landing API shutdown")
@@ -69,6 +72,7 @@ app = FastAPI(
 # ── Middleware ─────────────────────────────────────────────
 
 setup_metrics(app)
+app.add_middleware(RateLimitMiddleware, enabled=not settings.DEBUG)  # Iter 6: 限流
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
@@ -104,9 +108,10 @@ app.include_router(auth_router,     prefix=PREFIX)
 app.include_router(profile_router,  prefix=PREFIX)
 app.include_router(articles_router, prefix=PREFIX)
 app.include_router(projects_router, prefix=PREFIX)
-app.include_router(search_router,   prefix=PREFIX)   # Iter 5
-app.include_router(social_router,   prefix=PREFIX)   # Iter 5
-app.include_router(ws_router,       prefix=PREFIX)   # Iter 5
+app.include_router(search_router,    prefix=PREFIX)   # Iter 5
+app.include_router(social_router,    prefix=PREFIX)   # Iter 5
+app.include_router(ws_router,        prefix=PREFIX)   # Iter 5
+app.include_router(security_router,  prefix=PREFIX)   # Iter 6
 
 
 # ── Health Check ──────────────────────────────────────────
