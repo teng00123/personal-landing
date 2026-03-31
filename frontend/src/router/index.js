@@ -5,6 +5,9 @@ const router = createRouter({
   history: createWebHistory(),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
+    // ── Splash ────────────────────────────────────────────
+    { path: '/splash', name: 'splash', component: () => import('@/views/SplashView.vue'), meta: { title: '欢迎' } },
+
     // ── Public ────────────────────────────────────────────
     {
       path: '/',
