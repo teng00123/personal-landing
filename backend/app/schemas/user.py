@@ -16,6 +16,7 @@ class PublicProfileOut(BaseModel):
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
     website_url: Optional[str] = None
+    csdn_url: Optional[str] = None
     location: Optional[str] = None
     email_public: Optional[str] = None
     resume_data: Optional[str] = None
@@ -38,6 +39,7 @@ class UserOut(BaseModel):
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
     website_url: Optional[str] = None
+    csdn_url: Optional[str] = None
     location: Optional[str] = None
     email_public: Optional[str] = None
     resume_data: Optional[str] = None
@@ -54,6 +56,7 @@ class UserProfileUpdate(BaseModel):
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
     website_url: Optional[str] = None
+    csdn_url: Optional[str] = None
     location: Optional[str] = None
     email_public: Optional[str] = None
     resume_data: Optional[str] = None

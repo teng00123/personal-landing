@@ -75,6 +75,12 @@
               </svg>
               LinkedIn
             </a>
+            <a v-if="profile?.csdn_url" :href="profile.csdn_url" target="_blank" class="btn btn--outline btn--csdn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+              </svg>
+              CSDN
+            </a>
             <router-link to="/articles" class="btn btn--primary">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
@@ -593,6 +599,16 @@ onMounted(async () => {
   box-shadow: 0 8px 28px rgba(91,141,238,.45);
 }
 .btn--gradient > * { position: relative; z-index: 1; }
+.btn--csdn {
+  border-color: rgba(252, 100, 30, 0.35) !important;
+  color: #fc641e !important;
+  background: rgba(252, 100, 30, 0.06) !important;
+}
+.btn--csdn:hover {
+  border-color: rgba(252, 100, 30, 0.6) !important;
+  background: rgba(252, 100, 30, 0.14) !important;
+  box-shadow: 0 6px 20px rgba(252, 100, 30, 0.2) !important;
+}
 
 /* 统计 */
 .hero__stats {
