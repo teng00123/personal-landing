@@ -12,24 +12,7 @@ jobs:
     name: Backend Tests
     runs-on: ubuntu-latest
     if: contains(github.event.head_commit.message, '[skip ci]') == false
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: test_db
-          MYSQL_USER: app
-          MYSQL_PASSWORD: apppass
-        ports: [3306:3306]
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
-          --health-interval=10s --health-timeout=5s --health-retries=3
-      redis:
-        image: redis:7-alpine
-        ports: [6379:6379]
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=10s --health-timeout=5s --health-retries=3
+    # 测试使用 SQLite in-memory + NullCacheManager，无需 MySQL/Redis 服务
     
     steps:
       - uses: actions/checkout@v4
@@ -53,11 +36,12 @@ jobs:
           ruff check app/ --output-format=github
           ruff format app/ --check
       
-      - name: Test
+      - name: Test — import smoke
         run: |
           cd backend
           python -c "from app.main import app; print('✅ Import OK')"
         env:
+          SECRET_KEY: test-secret-key-for-ci-only
           DB_HOST: localhost
           DB_PORT: 3306
           DB_USER: app
@@ -65,6 +49,30 @@ jobs:
           DB_NAME: test_db
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+
+      - name: Test — happy path (Auth / Articles / Projects)
+        run: |
+          cd backend
+          python -m pytest tests/test_auth.py tests/test_articles.py tests/test_projects.py \
+            -v --tb=short --no-header \
+            --junitxml=test-results.xml
+        env:
+          SECRET_KEY: test-secret-key-for-ci-only
+          # DB/Redis 不会被实际连接（测试走 SQLite + NullCacheManager）
+          DB_HOST: localhost
+          DB_PORT: 3306
+          DB_USER: app
+          DB_PASSWORD: apppass
+          DB_NAME: test_db
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/test-results.xml
 
   # 前端构建检查
   frontend:

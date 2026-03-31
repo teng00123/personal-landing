@@ -17,4 +17,4 @@ backend/deploy_workspace/
 .vscode/
 .gtm.yaml
 .gtmproject.yaml
-frontend/package-lock.json
+frontend/package-lock.jsonbackend/test_db.sqlite3
