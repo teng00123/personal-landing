@@ -12,9 +12,23 @@
 <script setup>
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import { useThemeStore } from './store/theme.js'
+import { useRouter, useRoute } from 'vue-router'
+import { onMounted } from 'vue'
 
 // 初始化主题
 useThemeStore()
+
+const router = useRouter()
+const route  = useRoute()
+
+onMounted(() => {
+  // 仅在访问根路径且本次会话尚未看过欢迎页时跳转
+  const seen = sessionStorage.getItem('splash_seen')
+  if (!seen && (route.path === '/' || route.path === '')) {
+    sessionStorage.setItem('splash_seen', '1')
+    router.replace('/splash')
+  }
+})
 </script>
 
 <style>
