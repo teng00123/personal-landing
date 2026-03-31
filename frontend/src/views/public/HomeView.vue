@@ -16,8 +16,14 @@
         <div class="hero__avatar-box">
           <div class="avatar-outer-ring"></div>
           <div class="avatar-inner-ring"></div>
+          <!-- 动态粒子轨道 -->
+          <div class="avatar-orbit">
+            <span class="orbit-dot orbit-dot--1"></span>
+            <span class="orbit-dot orbit-dot--2"></span>
+            <span class="orbit-dot orbit-dot--3"></span>
+          </div>
           <img
-            :src="profile?.avatar_url || 'https://api.dicebear.com/8.x/bottts/svg?seed=portfolio'"
+            :src="profile?.avatar_url || 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=openclaw&backgroundColor=b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear'"
             alt="avatar"
             class="hero__avatar"
           />
@@ -415,16 +421,22 @@ onMounted(async () => {
   justify-content: center;
   animation: float 6s ease-in-out infinite;
 }
+/* 流光外圈：conic-gradient 旋转 */
 .avatar-outer-ring {
   position: absolute;
   inset: -18px;
   border-radius: 50%;
-  border: 1.5px solid transparent;
-  background:
-    linear-gradient(rgba(6,11,24,0), rgba(6,11,24,0)) padding-box,
-    linear-gradient(135deg, rgba(91,141,238,.5), rgba(167,139,250,.5), rgba(244,114,182,.5)) border-box;
-  animation: ringRotate 10s linear infinite;
-  opacity: .7;
+  background: conic-gradient(
+    from 0deg,
+    rgba(91,141,238,0) 0%,
+    rgba(91,141,238,.8) 20%,
+    rgba(167,139,250,.8) 45%,
+    rgba(244,114,182,.8) 65%,
+    rgba(91,141,238,0) 100%
+  );
+  animation: ringRotate 4s linear infinite;
+  mask-image: radial-gradient(circle, transparent 87px, black 88px);
+  -webkit-mask-image: radial-gradient(circle, transparent 87px, black 88px);
 }
 .avatar-inner-ring {
   position: absolute;
@@ -432,17 +444,63 @@ onMounted(async () => {
   border-radius: 50%;
   border: 2px solid transparent;
   background:
-    linear-gradient(rgba(6,11,24,0), rgba(6,11,24,0)) padding-box,
+    linear-gradient(var(--c-bg), var(--c-bg)) padding-box,
     linear-gradient(135deg, #5b8dee, #a78bfa, #f472b6) border-box;
-  box-shadow: 0 0 30px rgba(91,141,238,.35), 0 0 60px rgba(167,139,250,.2);
+  box-shadow:
+    0 0 20px rgba(91,141,238,.4),
+    0 0 50px rgba(167,139,250,.2),
+    inset 0 0 20px rgba(91,141,238,.05);
+  animation: glowPulse 3s ease-in-out infinite;
 }
+
+/* 粒子轨道 */
+.avatar-orbit {
+  position: absolute;
+  inset: -32px;
+  border-radius: 50%;
+  animation: ringRotate 8s linear infinite reverse;
+  pointer-events: none;
+}
+.orbit-dot {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+.orbit-dot--1 {
+  width: 8px; height: 8px;
+  top: 50%; left: 0;
+  transform: translateY(-50%);
+  background: #5b8dee;
+  color: #5b8dee;
+  animation: orbitPulse 2s ease-in-out infinite;
+}
+.orbit-dot--2 {
+  width: 6px; height: 6px;
+  bottom: 14%; right: 8%;
+  background: #a78bfa;
+  color: #a78bfa;
+  animation: orbitPulse 2.5s ease-in-out infinite .6s;
+}
+.orbit-dot--3 {
+  width: 5px; height: 5px;
+  top: 12%; right: 10%;
+  background: #f472b6;
+  color: #f472b6;
+  animation: orbitPulse 2s ease-in-out infinite 1.2s;
+}
+
 .hero__avatar {
   width: 200px; height: 200px;
   border-radius: 50%;
   object-fit: cover;
   position: relative;
   z-index: 1;
-  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  animation: avatarGlow 4s ease-in-out infinite;
+  transition: transform .3s ease !important;
+}
+.hero__avatar-box:hover .hero__avatar {
+  transform: scale(1.05);
 }
 .avatar-status {
   position: absolute;
