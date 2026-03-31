@@ -46,9 +46,6 @@ export const projectsApi = {
   uploadCover: (id, fd) => http.post(`/projects/${id}/cover`, fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-  // 迭代三：部署操作
-  deploy:      (id)     => http.post(`/projects/${id}/deploy`),
-  redeploy:    (id)     => http.post(`/projects/${id}/redeploy`),
-  stop:        (id)     => http.post(`/projects/${id}/stop`),
-  logs:        (id, offset = 0) => http.get(`/projects/${id}/logs`, { params: { offset } }),
+  // GitHub README
+  readme:      (id)     => http.get(`/projects/${id}/readme`),
 }
