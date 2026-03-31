@@ -36,6 +36,10 @@
       <div class="sp-text" :class="{ 'sp-text--in': show }">
         <h1 class="sp-name">{{ name }}</h1>
         <p class="sp-tagline">{{ tagline }}</p>
+        <!-- 打字机欢迎词 -->
+        <div class="sp-typewriter" :class="{ 'sp-typewriter--in': show }">
+          <span class="sp-typed">{{ typedText }}</span><span class="sp-cursor" :class="{ 'sp-cursor--blink': cursorBlink }">|</span>
+        </div>
       </div>
 
       <!-- 进度条 -->
@@ -62,6 +66,11 @@ const leaving  = ref(false)
 const progress = ref(0)
 const profile  = ref(null)
 
+// 打字机
+const WELCOME_TEXT = '欢迎来到我的个人主页 👋'
+const typedText    = ref('')
+const cursorBlink  = ref(false)
+
 const avatarUrl = computed(() =>
   profile.value?.avatar_url ||
   'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=openclaw&backgroundColor=b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear'
@@ -72,7 +81,7 @@ const tagline  = computed(() => profile.value?.title     || 'Welcome')
 // 随机粒子样式
 function particleStyle(i) {
   const angle  = (i / 18) * 360
-  const r      = 38 + (i % 5) * 9   // 38%~74% 半径
+  const r      = 38 + (i % 5) * 9
   const size   = 3 + (i % 4)
   const delay  = (i * 0.15).toFixed(2)
   const dur    = (2.5 + (i % 3) * 0.7).toFixed(1)
@@ -89,25 +98,40 @@ function particleStyle(i) {
   }
 }
 
+// 打字机逻辑
+function startTypewriter(delay = 500) {
+  setTimeout(() => {
+    let idx = 0
+    const CHAR_INTERVAL = 80  // ms/字符
+    const timer = setInterval(() => {
+      typedText.value = WELCOME_TEXT.slice(0, ++idx)
+      if (idx >= WELCOME_TEXT.length) {
+        clearInterval(timer)
+        // 打完后光标开始闪烁
+        cursorBlink.value = true
+      }
+    }, CHAR_INTERVAL)
+  }, delay)
+}
+
 onMounted(async () => {
-  // 拉取头像/名字（非阻塞，失败也没关系）
   try { profile.value = await profileApi.get() } catch {}
 
-  // 触发入场动画
   requestAnimationFrame(() => { show.value = true })
 
-  // 进度条动画（约 1.8s 从 0 到 100）
-  const TOTAL    = 1800   // ms
-  const STEP     = 16
-  let   elapsed  = 0
+  // 打字机在入场动画后 0.5s 开始
+  startTypewriter(500)
+
+  // 进度条动画（约 1.8s）
+  const TOTAL   = 1800
+  const STEP    = 16
+  let   elapsed = 0
   const timer = setInterval(() => {
-    elapsed  += STEP
-    // ease-out 曲线
-    progress.value = 100 * (1 - Math.pow(1 - elapsed / TOTAL, 2))
+    elapsed        += STEP
+    progress.value  = 100 * (1 - Math.pow(1 - elapsed / TOTAL, 2))
     if (elapsed >= TOTAL) {
       progress.value = 100
       clearInterval(timer)
-      // 稍作停顿后离场
       setTimeout(() => {
         leaving.value = true
         setTimeout(() => router.replace('/'), 500)
@@ -274,6 +298,42 @@ onMounted(async () => {
   font-size: 1rem; font-weight: 500;
   color: var(--c-text-muted);
   letter-spacing: .04em;
+}
+
+/* ── 打字机欢迎词 ───────────────────────────────────────── */
+.sp-typewriter {
+  margin-top: 14px;
+  font-size: 1.05rem; font-weight: 600;
+  letter-spacing: .03em;
+  opacity: 0; transform: translateY(12px);
+  transition: opacity .5s ease .55s, transform .5s ease .55s;
+  display: flex; align-items: center; justify-content: center; gap: 1px;
+  min-height: 1.6em;
+}
+.sp-typewriter--in { opacity: 1; transform: translateY(0); }
+
+.sp-typed {
+  background: linear-gradient(90deg, #5b8dee, #a78bfa, #f472b6);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+
+.sp-cursor {
+  display: inline-block;
+  color: var(--c-primary);
+  font-weight: 300;
+  margin-left: 1px;
+  opacity: 1;
+  -webkit-text-fill-color: var(--c-primary);
+}
+.sp-cursor--blink {
+  animation: cursorBlink .8s step-end infinite;
+}
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 /* ── 进度条 ────────────────────────────────────────────── */
