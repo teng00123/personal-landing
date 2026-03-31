@@ -22,6 +22,7 @@ class User(Base):
     github_url = Column(String(256))
     linkedin_url = Column(String(256))
     website_url = Column(String(256))
+    csdn_url = Column(String(256))
     location = Column(String(128))
     email_public = Column(String(128))
 

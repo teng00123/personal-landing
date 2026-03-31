@@ -45,6 +45,14 @@
           </el-form-item>
         </el-col>
         <el-col :span="8">
+          <el-form-item label="CSDN 主页">
+            <el-input v-model="form.csdn_url" placeholder="https://blog.csdn.net/xxx" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
+        <el-col :span="8">
           <el-form-item label="头像 URL">
             <el-input v-model="form.avatar_url" placeholder="https://..." />
           </el-form-item>
@@ -80,7 +88,7 @@ const loading = ref(false)
 const saving  = ref(false)
 const form    = ref({
   full_name: '', title: '', bio: '', location: '', email_public: '',
-  github_url: '', linkedin_url: '', avatar_url: '', resume_data: '',
+  github_url: '', linkedin_url: '', csdn_url: '', avatar_url: '', resume_data: '',
 })
 
 onMounted(async () => {
