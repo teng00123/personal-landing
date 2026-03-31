@@ -9,10 +9,10 @@ import { ref, watch } from 'vue'
 // ThemeMode: 'dark' | 'light' | 'auto'
 
 export const useThemeStore = defineStore('theme', () => {
-  const mode = ref(localStorage.getItem('theme') || 'auto')
+  const mode = ref(localStorage.getItem('theme') || 'light')
 
   // 当前实际主题（auto 下根据系统解析）
-  const resolved = ref('dark')
+  const resolved = ref('light')
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
