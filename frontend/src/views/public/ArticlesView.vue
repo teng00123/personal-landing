@@ -102,12 +102,19 @@ onMounted(load)
 .page { padding-top: 60px; }
 .tag-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 36px; }
 .art-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(300px,1fr)); gap: 24px; }
-.art-card { display: flex; flex-direction: column; text-decoration: none; color: inherit; overflow: hidden; padding: 0; }
-.art-cover { width: 100%; height: 170px; object-fit: cover; }
+.art-card {
+  display: flex; flex-direction: column; text-decoration: none;
+  color: inherit; overflow: hidden; padding: 0;
+}
+.art-cover {
+  width: 100%; height: 170px; object-fit: cover;
+  display: block; /* 消除图片底部间隙 */
+  background: var(--c-bg-2); /* 图片加载前的占位色 */
+}
 .art-body { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
 .tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
-.art-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; line-height: 1.4; }
-.art-sum { font-size: .875rem; flex: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.art-foot { display: flex; justify-content: space-between; font-size: .8125rem; color: #64748b; padding-top: 8px; border-top: 1px solid #1e293b; }
+.art-title { font-size: 1rem; font-weight: 700; color: var(--c-text); line-height: 1.4; }
+.art-sum { font-size: .875rem; color: var(--c-text-muted); flex: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.art-foot { display: flex; justify-content: space-between; font-size: .8125rem; color: var(--c-text-muted); padding-top: 8px; border-top: 1px solid var(--c-border); }
 .pager { display: flex; justify-content: center; margin-top: 48px; }
 </style>
