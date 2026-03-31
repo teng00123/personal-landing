@@ -169,55 +169,55 @@ onMounted(load)
 .proj-cover { width:100%; height:150px; object-fit:cover; }
 .proj-placeholder {
   width:100%; height:110px;
-  background:linear-gradient(135deg,#1e293b,#334155);
+  background: linear-gradient(135deg, var(--c-primary), var(--c-accent));
   display:flex; align-items:center; justify-content:center;
-  font-size:2.75rem; font-weight:800; color:rgba(59,130,246,.25);
+  font-size:2.75rem; font-weight:800; color:rgba(255,255,255,.5);
 }
 
 /* 内容区 */
-.proj-name  { font-size:.9375rem; font-weight:700; color:#f1f5f9; padding:0 16px; }
+.proj-name  { font-size:.9375rem; font-weight:700; color:var(--c-text); padding:0 16px; }
 .proj-desc  { font-size:.8125rem; padding:0 16px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .tag-row    { display:flex; gap:6px; flex-wrap:wrap; padding:0 16px; }
 .stats-row  { display:flex; align-items:center; gap:10px; padding:0 16px; }
 .fw-row     { padding:0 16px; }
 .stars      { font-size:.8125rem; color:#f59e0b; }
-.forks      { font-size:.8125rem; color:#64748b; }
-.fw-badge   { padding:2px 8px; border-radius:4px; background:rgba(139,92,246,.12); color:#a78bfa; font-size:.75rem; }
+.forks      { font-size:.8125rem; color:var(--c-text-muted); }
+.fw-badge   { padding:2px 8px; border-radius:4px; background:rgba(124,58,237,.1); color:var(--c-accent); font-size:.75rem; }
 
 /* 操作按钮 */
-.proj-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding:12px 16px; border-top:1px solid #1e293b; }
+.proj-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:auto; padding:12px 16px; border-top:1px solid var(--c-border); }
 .btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:8px; font-size:.8125rem; font-weight:600; text-decoration:none; transition:all .2s; cursor:pointer; border:none; }
-.btn--primary { background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; }
+.btn--primary { background: var(--grad-primary); color:white; }
 .btn--primary:hover { opacity:.88; }
-.btn--ghost   { border:1px solid #334155; color:#94a3b8; background:transparent; }
-.btn--ghost:hover { border-color:#60a5fa; color:#60a5fa; }
+.btn--ghost   { border:1px solid var(--c-border); color:var(--c-text-muted); background:transparent; }
+.btn--ghost:hover { border-color:var(--c-primary); color:var(--c-primary); }
 
 .pager { display:flex; justify-content:center; margin-top:48px; }
 
 /* README 弹窗 */
 .readme-toolbar {
   display:flex; align-items:center; justify-content:space-between;
-  padding:0 0 12px; border-bottom:1px solid #1e293b; gap:12px; flex-wrap:wrap;
+  padding:0 0 12px; border-bottom:1px solid var(--c-border); gap:12px; flex-wrap:wrap;
 }
 .readme-url {
-  font-size:.8125rem; color:#64748b;
+  font-size:.8125rem; color:var(--c-text-muted);
   display:flex; align-items:center; gap:6px;
   min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
-.gh-link { color:#60a5fa; text-decoration:none; }
+.gh-link { color:var(--c-primary); text-decoration:none; }
 .gh-link:hover { text-decoration:underline; }
 
 .readme-body  { margin-top:12px; max-height:62vh; overflow-y:auto; border-radius:8px; }
 .readme-loading {
   display:flex; flex-direction:column; align-items:center;
-  justify-content:center; gap:12px; padding:60px 0; color:#94a3b8; font-size:.9rem;
+  justify-content:center; gap:12px; padding:60px 0; color:var(--c-text-muted); font-size:.9rem;
 }
 .readme-error {
   display:flex; align-items:center; gap:8px; padding:20px;
-  color:#ef4444; background:rgba(239,68,68,.08); border-radius:8px; font-size:.875rem;
+  color:var(--c-danger); background:rgba(220,38,38,.07); border-radius:8px; font-size:.875rem;
 }
 
-/* Markdown 渲染 */
+/* Markdown 渲染（保持深色代码风格） */
 .md-body { padding:16px 20px; background:#0d1117; border-radius:8px; color:#e2e8f0; font-size:14px; line-height:1.75; }
 .md-body :deep(h1),.md-body :deep(h2),.md-body :deep(h3),.md-body :deep(h4) { color:#f1f5f9; font-weight:700; margin:1.2em 0 .5em; padding-bottom:.3em; border-bottom:1px solid #1e293b; }
 .md-body :deep(h1) { font-size:1.5rem; }
