@@ -86,13 +86,36 @@
     </el-dialog>
 
     <!-- ── README 预览 Dialog ──────────────────────────── -->
-    <el-dialog v-model="readmeVisible" :title="`README — ${readmeProject?.name}`" width="720px">
-      <div v-if="readmeLoading" style="text-align:center;padding:40px">加载中...</div>
-      <div v-else-if="readmeError" style="color:#ef4444;padding:20px">{{ readmeError }}</div>
-      <pre v-else style="white-space:pre-wrap;word-break:break-all;font-size:13px;line-height:1.7;max-height:60vh;overflow-y:auto;background:#0d1117;padding:16px;border-radius:8px;color:#e2e8f0">{{ readmeContent }}</pre>
+    <el-dialog v-model="readmeVisible" :title="`README — ${readmeProject?.name}`" width="760px" :close-on-click-modal="false">
+      <!-- 顶部操作栏 -->
+      <div class="readme-toolbar">
+        <span class="readme-repo-url" v-if="readmeProject?.github_url">
+          <el-icon><Link /></el-icon>
+          <a :href="readmeProject.github_url" target="_blank" class="deploy-link">{{ readmeProject.github_url }}</a>
+        </span>
+        <el-button size="small" type="primary" :icon="TopRight" @click="openGithub">
+          前往 GitHub
+        </el-button>
+      </div>
+
+      <!-- 内容区 -->
+      <div class="readme-body">
+        <div v-if="readmeLoading" class="readme-loading">
+          <el-icon class="is-loading" size="32"><Loading /></el-icon>
+          <span>正在拉取 README...</span>
+        </div>
+        <div v-else-if="readmeError" class="readme-error">
+          <el-icon size="24"><Warning /></el-icon>
+          <span>{{ readmeError }}</span>
+        </div>
+        <div v-else class="md-body" v-html="renderedReadme" />
+      </div>
+
       <template #footer>
         <el-button @click="readmeVisible = false">关闭</el-button>
-        <el-button type="primary" @click="window.open(readmeProject?.github_url, '_blank')">在 GitHub 打开</el-button>
+        <el-button type="primary" :icon="TopRight" @click="openGithub">
+          前往 GitHub
+        </el-button>
       </template>
     </el-dialog>
 
@@ -100,13 +123,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search, Plus, RefreshRight,
-  DocumentCopy, Edit, Delete, Link,
+  Search, Plus, DocumentCopy, Edit, Delete, Link, TopRight, Loading, Warning,
 } from '@element-plus/icons-vue'
+import { marked } from 'marked'
 import { projectsApi } from '@/api/endpoints.js'
+
+// marked 配置
+marked.setOptions({ breaks: true, gfm: true })
 
 // ── List ──────────────────────────────────────────────────
 const projects = ref([])
@@ -184,10 +210,21 @@ const readmeContent = ref('')
 const readmeError   = ref('')
 const readmeLoading = ref(false)
 
+const renderedReadme = computed(() => {
+  if (!readmeContent.value) return ''
+  return marked.parse(readmeContent.value)
+})
+
+function openGithub() {
+  if (readmeProject.value?.github_url) {
+    window.open(readmeProject.value.github_url, '_blank')
+  }
+}
+
 async function fetchReadme(p) {
   readmeProject.value = p
   readmeContent.value = ''
-  readmeError.value = ''
+  readmeError.value   = ''
   readmeLoading.value = true
   readmeVisible.value = true
   try {
@@ -197,8 +234,8 @@ async function fetchReadme(p) {
     } else {
       readmeError.value = res.error || '未找到 README'
     }
-  } catch (e) {
-    readmeError.value = '加载失败'
+  } catch {
+    readmeError.value = '加载失败，请检查 GitHub URL 是否正确'
   } finally {
     readmeLoading.value = false
   }
@@ -240,4 +277,79 @@ loadList()
 .proj-actions { padding:12px 16px; border-top:1px solid #1e293b; display:flex; flex-wrap:wrap; gap:6px; }
 
 .pager { display:flex; justify-content:flex-end; margin-top:20px; }
+
+/* README 弹窗 */
+.readme-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 0 12px; border-bottom: 1px solid #1e293b; gap: 12px; flex-wrap: wrap;
+}
+.readme-repo-url {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .8125rem; color: #64748b; min-width: 0; flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.readme-body {
+  margin-top: 12px;
+  max-height: 62vh;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+.readme-loading {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 12px; padding: 60px 0;
+  color: #94a3b8; font-size: .9rem;
+}
+.readme-error {
+  display: flex; align-items: center; gap: 8px;
+  padding: 24px; color: #ef4444; font-size: .875rem;
+  background: rgba(239,68,68,.08); border-radius: 8px;
+}
+
+/* Markdown 渲染样式 */
+.md-body {
+  padding: 16px 20px;
+  background: #0d1117;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.md-body :deep(h1),
+.md-body :deep(h2),
+.md-body :deep(h3),
+.md-body :deep(h4) {
+  color: #f1f5f9; font-weight: 700; margin: 1.2em 0 .5em;
+  padding-bottom: .3em; border-bottom: 1px solid #1e293b;
+}
+.md-body :deep(h1) { font-size: 1.5rem; }
+.md-body :deep(h2) { font-size: 1.25rem; }
+.md-body :deep(h3) { font-size: 1.05rem; border-bottom: none; }
+.md-body :deep(p)  { margin: .6em 0; }
+.md-body :deep(a)  { color: #60a5fa; text-decoration: none; }
+.md-body :deep(a:hover) { text-decoration: underline; }
+.md-body :deep(code) {
+  background: #1e293b; color: #93c5fd;
+  padding: 2px 6px; border-radius: 4px; font-size: .85em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+.md-body :deep(pre) {
+  background: #1e293b; border-radius: 8px;
+  padding: 14px 16px; overflow-x: auto; margin: .8em 0;
+}
+.md-body :deep(pre code) { background: none; padding: 0; color: #e2e8f0; }
+.md-body :deep(blockquote) {
+  border-left: 3px solid #3b82f6; margin: .8em 0;
+  padding: 4px 16px; color: #94a3b8; background: rgba(59,130,246,.06);
+}
+.md-body :deep(table) { width: 100%; border-collapse: collapse; margin: .8em 0; }
+.md-body :deep(th),
+.md-body :deep(td) {
+  border: 1px solid #1e293b; padding: 6px 12px; text-align: left;
+}
+.md-body :deep(th) { background: #1e293b; color: #f1f5f9; font-weight: 600; }
+.md-body :deep(ul),
+.md-body :deep(ol) { padding-left: 1.5em; margin: .5em 0; }
+.md-body :deep(li) { margin: .25em 0; }
+.md-body :deep(hr) { border: none; border-top: 1px solid #1e293b; margin: 1em 0; }
+.md-body :deep(img) { max-width: 100%; border-radius: 6px; }
 </style>
