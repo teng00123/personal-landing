@@ -25,6 +25,7 @@
           <el-button type="success" :icon="Upload">上传 .md</el-button>
         </el-upload>
         <el-button type="primary" :icon="Plus" @click="openEditor(null)">新建文章</el-button>
+        <el-button type="warning" :icon="Link" @click="csdnVisible = true">从 CSDN 导入</el-button>
       </div>
     </div>
 
@@ -35,8 +36,6 @@
       stripe
       style="width:100%"
       row-key="id"
-      :header-cell-style="{ background:'#1e293b', color:'#94a3b8', borderBottom:'1px solid #334155' }"
-      :cell-style="{ background:'#0f172a', color:'#e2e8f0', borderBottom:'1px solid #1e293b' }"
     >
       <el-table-column prop="id" label="ID" width="60" />
 
@@ -127,6 +126,32 @@
       />
     </el-drawer>
 
+    <!-- ── CSDN 导入 Dialog ──────────────────────────────── -->
+    <el-dialog
+      v-model="csdnVisible"
+      title="从 CSDN 导入文章"
+      width="520px"
+      :close-on-click-modal="false"
+    >
+      <div class="csdn-form">
+        <p class="csdn-tip">
+          粘贴 CSDN 文章链接，系统将自动提取标题、正文、标签并保存为草稿，同时在文末附上原文链接。
+        </p>
+        <el-input
+          v-model="csdnUrl"
+          placeholder="https://blog.csdn.net/xxx/article/details/xxx"
+          clearable
+          :prefix-icon="Link"
+          size="large"
+        />
+        <div v-if="csdnError" class="csdn-error">⚠️ {{ csdnError }}</div>
+      </div>
+      <template #footer>
+        <el-button @click="csdnVisible = false">取消</el-button>
+        <el-button type="primary" :loading="csdnLoading" @click="doImportCsdn">导入</el-button>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -134,7 +159,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, Upload } from '@element-plus/icons-vue'
+import { Search, Plus, Upload, Link } from '@element-plus/icons-vue'
 import { articlesApi } from '@/api/endpoints.js'
 import ArticleEditor from './ArticleEditor.vue'
 import dayjs from 'dayjs'
@@ -150,6 +175,12 @@ const searchQ         = ref('')
 const filterPublished = ref(null)
 const editorVisible   = ref(false)
 const editId          = ref(null)
+
+// CSDN 导入
+const csdnVisible = ref(false)
+const csdnUrl     = ref('')
+const csdnLoading = ref(false)
+const csdnError   = ref('')
 
 const parseTags = (t) => (t || '').split(',').map(s => s.trim()).filter(Boolean)
 const fmtDate   = (d) => d ? dayjs(d).format('YYYY-MM-DD HH:mm') : '—'
@@ -218,15 +249,41 @@ async function uploadMd(file) {
   return false  // 阻止 el-upload 自动上传
 }
 
+async function doImportCsdn() {
+  csdnError.value = ''
+  const url = csdnUrl.value.trim()
+  if (!url) { csdnError.value = '请输入 CSDN 文章链接'; return }
+  if (!url.includes('csdn.net')) { csdnError.value = '请输入有效的 CSDN 链接（包含 csdn.net）'; return }
+  csdnLoading.value = true
+  try {
+    const art = await articlesApi.importCsdn(url)
+    ElMessage.success(`「${art.title}」已导入为草稿，可在编辑器中继续编辑`)
+    csdnVisible.value = false
+    csdnUrl.value = ''
+    editId.value = art.id
+    editorVisible.value = true
+    loadList()
+  } catch (e) {
+    csdnError.value = e?.response?.data?.detail || e?.message || '导入失败，请检查链接或稍后重试'
+  } finally {
+    csdnLoading.value = false
+  }
+}
+
 onMounted(loadList)
 </script>
 
 <style scoped>
 .page-head    { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
-.page-h2      { font-size:1.375rem; font-weight:700; color:#f1f5f9; }
+.page-h2      { font-size:1.375rem; font-weight:700; color:var(--c-text); }
 .head-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .cover-thumb  { width:48px; height:36px; object-fit:cover; border-radius:4px; }
-.cover-empty  { width:48px; height:36px; display:flex; align-items:center; justify-content:center; font-size:1.25rem; background:#1e293b; border-radius:4px; }
-.article-title { font-weight:600; color:#e2e8f0; }
+.cover-empty  { width:48px; height:36px; display:flex; align-items:center; justify-content:center; font-size:1.25rem; background:var(--c-bg-card2); border-radius:4px; }
+.article-title { font-weight:600; color:var(--c-text); }
 .pager        { display:flex; justify-content:flex-end; margin-top:20px; }
+
+/* CSDN 导入弹窗 */
+.csdn-form  { display:flex; flex-direction:column; gap:14px; }
+.csdn-tip   { font-size:.875rem; color:var(--c-text-muted); line-height:1.6; }
+.csdn-error { font-size:.85rem; color:var(--c-danger); background:rgba(220,38,38,.07); padding:8px 12px; border-radius:6px; }
 </style>

@@ -13,7 +13,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from slugify import slugify
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -232,6 +235,115 @@ async def upload_markdown(
     db.refresh(article)
 
     # 清除列表缓存
+    await cache.clear_pattern("articles:list:*")
+    return article
+
+
+# ── CSDN 导入 ──────────────────────────────────────────────
+
+class CsdnImportBody(BaseModel):
+    url: str
+
+def _extract_csdn(html: str, url: str) -> dict:
+    """从 CSDN 文章 HTML 中提取标题、正文（转 Markdown）、封面、摘要、标签。"""
+    # 标题
+    title_m = re.search(r'<h1[^>]*class="[^"]*title-article[^"]*"[^>]*>(.*?)</h1>', html, re.S)
+    if not title_m:
+        title_m = re.search(r'<title>(.*?)(?:\s*[-_|].*)?</title>', html, re.S)
+    title = re.sub(r'<[^>]+>', '', title_m.group(1)).strip() if title_m else "CSDN 文章"
+
+    # 封面（og:image）
+    cover_m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', html)
+    cover = cover_m.group(1) if cover_m else None
+
+    # 标签
+    tags_list = re.findall(r'<a[^>]+class="[^"]*tag-link[^"]*"[^>]*>([^<]+)</a>', html)
+    tags = ",".join(t.strip() for t in tags_list[:6]) if tags_list else ""
+
+    # 正文
+    body_m = re.search(
+        r'<div[^>]+id="article_content"[^>]*>(.*?)</div>\s*(?=<div[^>]+class="[^"]*article-copyright)',
+        html, re.S
+    )
+    if not body_m:
+        body_m = re.search(r'<div[^>]+id="article_content"[^>]*>(.*?)</div>', html, re.S)
+
+    content_html = body_m.group(1) if body_m else ""
+
+    # 简单 HTML → Markdown 转换
+    md = content_html
+    md = re.sub(r'<h([1-6])[^>]*>(.*?)</h\1>', lambda m: '#' * int(m.group(1)) + ' ' + re.sub(r'<[^>]+>', '', m.group(2)).strip(), md, flags=re.S)
+    md = re.sub(r'<pre[^>]*><code[^>]*class="[^"]*language-([^"\s]+)[^"]*"[^>]*>(.*?)</code></pre>',
+                lambda m: f'\n```{m.group(1)}\n{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(2)).strip()}\n```\n', md, flags=re.S)
+    md = re.sub(r'<pre[^>]*><code[^>]*>(.*?)</code></pre>',
+                lambda m: f'\n```\n{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(1)).strip()}\n```\n', md, flags=re.S)
+    md = re.sub(r'<code[^>]*>(.*?)</code>', lambda m: f'`{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(1))}`', md, flags=re.S)
+    md = re.sub(r'<strong[^>]*>(.*?)</strong>', r'**\1**', md, flags=re.S)
+    md = re.sub(r'<em[^>]*>(.*?)</em>', r'*\1*', md, flags=re.S)
+    md = re.sub(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', r'[\2](\1)', md, flags=re.S)
+    md = re.sub(r'<img[^>]+src="([^"]+)"[^>]*/?>', r'![](\1)', md, flags=re.S)
+    md = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1', md, flags=re.S)
+    md = re.sub(r'<[^>]+>', '', md)
+    md = re.sub(r'\n{3,}', '\n\n', md).strip()
+
+    # 追加原文链接
+    md += f'\n\n---\n> 原文链接：[{url}]({url})\n'
+
+    summary = md[:200].replace('\n', ' ').strip()
+
+    return {"title": title, "content": md, "cover": cover, "tags": tags, "summary": summary}
+
+
+@router.post(
+    "/import-csdn",
+    response_model=ArticleOut,
+    status_code=201,
+    summary="从 CSDN 链接导入文章，保存为草稿",
+)
+async def import_csdn(
+    body: CsdnImportBody,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+    cache: CacheManager = Depends(get_cache),
+):
+    url = body.url.strip()
+    if "csdn.net" not in url:
+        raise HTTPException(400, "仅支持 CSDN 文章链接（csdn.net）")
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122 Safari/537.36",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Referer": "https://blog.csdn.net/",
+    }
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=12) as client:
+            resp = await client.get(url, headers=headers)
+        if resp.status_code != 200:
+            raise HTTPException(502, f"CSDN 返回 {resp.status_code}，请检查链接是否有效")
+        html = resp.text
+    except httpx.TimeoutException:
+        raise HTTPException(504, "请求 CSDN 超时，请稍后重试")
+    except httpx.RequestError as e:
+        raise HTTPException(502, f"网络错误：{e}")
+
+    meta = _extract_csdn(html, url)
+    if not meta["content"] or len(meta["content"]) < 50:
+        raise HTTPException(422, "无法提取文章内容，CSDN 可能需要登录或已更改页面结构")
+
+    slug = _unique_slug(meta["title"], db)
+    article = Article(
+        title=meta["title"],
+        slug=slug,
+        summary=meta["summary"],
+        content=meta["content"],
+        cover_image=meta["cover"],
+        tags=meta["tags"],
+        is_published=False,
+        author_id=admin.id,
+    )
+    db.add(article)
+    db.commit()
+    db.refresh(article)
     await cache.clear_pattern("articles:list:*")
     return article
 

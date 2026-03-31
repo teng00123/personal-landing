@@ -27,6 +27,7 @@ export const articlesApi = {
   uploadMd:    (fd)      => http.post('/articles/upload-md', fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
+  importCsdn:  (url)     => http.post('/articles/import-csdn', { url }),
   uploadCover: (id, fd)  => http.post(`/articles/${id}/cover`, fd, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
