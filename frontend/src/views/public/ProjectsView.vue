@@ -3,7 +3,7 @@
     <div class="container">
       <h1 class="section-title fade-in-up">项目展示</h1>
       <p class="text-muted fade-in-up" style="margin-bottom:48px;font-size:1.05rem">
-        GitHub 开源项目 · Celery 自动部署 · 实时访问
+        GitHub 开源项目 · 持续更新
       </p>
 
       <div v-loading="loading" class="proj-grid">
@@ -13,14 +13,6 @@
           class="card proj-card fade-in-up"
           :style="{ animationDelay: `${projects.indexOf(p) * 0.06}s` }"
         >
-          <!-- 状态徽章 -->
-          <div class="proj-status">
-            <span class="dot" :class="p.deploy_status"></span>
-            <span class="status-txt" :class="p.deploy_status">{{ statusLabel(p.deploy_status) }}</span>
-            <span class="stars" v-if="p.stars">⭐ {{ p.stars }}</span>
-            <span class="forks" v-if="p.forks">🍴 {{ p.forks }}</span>
-          </div>
-
           <!-- 封面 / 占位 -->
           <img v-if="p.cover_image" :src="p.cover_image" class="proj-cover" />
           <div v-else class="proj-placeholder">{{ p.name[0]?.toUpperCase() }}</div>
@@ -32,6 +24,12 @@
             <el-tag v-for="t in parseTags(p.tech_stack || p.tags)" :key="t" size="small" type="info">{{ t }}</el-tag>
           </div>
 
+          <!-- stars / forks -->
+          <div class="stats-row" v-if="p.stars || p.forks">
+            <span class="stars" v-if="p.stars">⭐ {{ p.stars }}</span>
+            <span class="forks" v-if="p.forks">🍴 {{ p.forks }}</span>
+          </div>
+
           <!-- 框架标识 -->
           <div v-if="p.framework" class="fw-row">
             <span class="fw-badge">{{ fwLabel(p.framework) }}</span>
@@ -41,14 +39,11 @@
           <div class="proj-actions">
             <a :href="p.github_url" target="_blank" class="btn btn--ghost">GitHub ↗</a>
             <a
-              v-if="p.deploy_status === 'running' && p.deploy_url"
-              :href="p.deploy_url"
+              v-if="p.github_url"
+              :href="p.github_url"
               target="_blank"
               class="btn btn--live"
-            >🚀 访问</a>
-            <span v-else-if="p.deploy_status === 'deploying'" class="btn btn--deploying">
-              ⏳ 部署中
-            </span>
+            >查看 GitHub</a>
           </div>
         </div>
       </div>
@@ -66,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { projectsApi } from '@/api/endpoints.js'
 
 const projects = ref([])
@@ -74,11 +69,9 @@ const total    = ref(0)
 const page     = ref(1)
 const pageSize = 12
 const loading  = ref(false)
-let   timer    = null
 
-const parseTags   = (t) => (t || '').split(',').map(s => s.trim()).filter(Boolean)
-const statusLabel = (s) => ({ pending:'待部署', deploying:'部署中', running:'运行中', failed:'失败', stopped:'已停止' }[s] ?? s)
-const fwLabel     = (f) => ({ 'vue-react':'Vue/React', nextjs:'Next.js', nodejs:'Node.js', fastapi:'FastAPI', flask:'Flask', django:'Django', static:'静态', docker:'Docker' }[f] ?? f)
+const parseTags = (t) => (t || '').split(',').map(s => s.trim()).filter(Boolean)
+const fwLabel   = (f) => ({ 'vue-react':'Vue/React', nextjs:'Next.js', nodejs:'Node.js', fastapi:'FastAPI', flask:'Flask', django:'Django', static:'静态', docker:'Docker' }[f] ?? f)
 
 async function load() {
   loading.value = true
@@ -86,18 +79,10 @@ async function load() {
     const res = await projectsApi.list({ page: page.value, page_size: pageSize })
     projects.value = res.items ?? []
     total.value    = res.total
-    // 有部署中的项目则自动轮询
-    const hasDeploying = projects.value.some(p => p.deploy_status === 'deploying')
-    if (hasDeploying && !timer) {
-      timer = setInterval(load, 5000)
-    } else if (!hasDeploying && timer) {
-      clearInterval(timer); timer = null
-    }
   } finally { loading.value = false }
 }
 
 onMounted(load)
-onUnmounted(() => { if (timer) clearInterval(timer) })
 </script>
 
 <style scoped>
@@ -115,21 +100,13 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 }
 
 /* 内容区 padding */
-.proj-status { display:flex; align-items:center; gap:7px; padding:14px 16px 0; }
 .proj-name   { font-size:.9375rem; font-weight:700; color:#f1f5f9; padding: 0 16px; }
 .proj-desc   { font-size:.8125rem; padding:0 16px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .tag-row     { display:flex; gap:6px; flex-wrap:wrap; padding:0 16px; }
+.stats-row   { display:flex; align-items:center; gap:10px; padding:0 16px; }
 .fw-row      { padding:0 16px; }
 
-.dot { width:8px; height:8px; border-radius:50%; background:#475569; }
-.dot.running   { background:#10b981; box-shadow:0 0 8px rgba(16,185,129,.6); animation:pulse 2s infinite; }
-.dot.deploying { background:#f59e0b; animation:pulse 1s infinite; }
-.dot.failed    { background:#ef4444; }
-.status-txt { font-size:.75rem; color:#64748b; }
-.status-txt.running   { color:#10b981; }
-.status-txt.deploying { color:#f59e0b; }
-.status-txt.failed    { color:#ef4444; }
-.stars { margin-left:auto; font-size:.8125rem; color:#f59e0b; }
+.stars { font-size:.8125rem; color:#f59e0b; }
 .forks { font-size:.8125rem; color:#64748b; }
 
 .fw-badge { padding:2px 8px; border-radius:4px; background:rgba(139,92,246,.12); color:#a78bfa; font-size:.75rem; }
@@ -138,8 +115,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 .btn { display:inline-flex; align-items:center; gap:5px; padding:6px 14px; border-radius:8px; font-size:.8125rem; font-weight:600; text-decoration:none; transition:all .2s; }
 .btn--ghost   { border:1px solid #334155; color:#94a3b8; }
 .btn--ghost:hover { border-color:#60a5fa; color:#60a5fa; }
-.btn--live    { background:linear-gradient(135deg,#10b981,#059669); color:white; }
-.btn--deploying { border:1px solid #f59e0b44; color:#f59e0b; font-size:.8125rem; padding:6px 14px; border-radius:8px; }
+.btn--live    { background:linear-gradient(135deg,#3b82f6,#2563eb); color:white; }
+.btn--live:hover { opacity:.9; }
 
 .pager { display:flex; justify-content:center; margin-top:48px; }
 </style>

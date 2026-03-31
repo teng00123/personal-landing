@@ -1,12 +1,5 @@
 """
-项目 CRUD + 部署 API — Iteration 3
-新增：
-  POST /projects/{id}/deploy    触发 Celery 部署
-  POST /projects/{id}/stop      停止运行中的项目
-  POST /projects/{id}/redeploy  重新部署
-  GET  /projects/{id}/logs      获取部署日志（支持 offset 参数）
-  POST /projects/{id}/cover     上传封面图
-  PUT  /projects/{id}/stars     同步 GitHub stars/forks
+项目 CRUD + GitHub README API
 """
 
 import os
@@ -88,7 +81,7 @@ def admin_list(
     return ProjectPage(total=total, page=page, page_size=page_size, items=items)
 
 
-@router.post("", response_model=ProjectOut, status_code=201, summary="新建项目（自动触发部署）")
+@router.post("", response_model=ProjectOut, status_code=201, summary="新建项目")
 def create_project(
     body: ProjectCreate,
     db: Session = Depends(get_db),
@@ -100,23 +93,11 @@ def create_project(
         github_repo=github_repo,
         owner_id=admin.id,
         deploy_status="pending",
-        deploy_log="[待部署] 项目已创建，点击「部署」开始自动部署。\n",
+        deploy_log="[待部署] 项目已创建。\n",
     )
     db.add(project)
     db.commit()
     db.refresh(project)
-
-    # 自动触发部署
-    try:
-        from app.tasks.deploy import deploy_project
-
-        deploy_project.delay(project.id)
-        project.deploy_status = "deploying"
-        db.commit()
-        db.refresh(project)
-    except Exception:
-        pass  # Celery 不可用时不影响创建
-
     return project
 
 
@@ -158,102 +139,37 @@ def delete_project(
     p = db.get(Project, project_id)
     if not p:
         raise HTTPException(404, "项目不存在")
-    # 停止进程
-    try:
-        from app.tasks.deploy import stop_project
-
-        stop_project.delay(project_id)
-    except Exception:
-        pass
     db.delete(p)
     db.commit()
 
 
-# ── 部署操作 ───────────────────────────────────────────────
+# ── GitHub README ──────────────────────────────────────────
 
 
-@router.post("/{project_id}/deploy", response_model=ProjectOut, summary="触发部署")
-def trigger_deploy(
-    project_id: int,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
+@router.get("/{project_id}/readme", summary="拉取 GitHub README")
+async def fetch_readme(project_id: int, db: Session = Depends(get_db)):
     p = db.get(Project, project_id)
     if not p:
         raise HTTPException(404, "项目不存在")
-    if p.deploy_status == "deploying":
-        raise HTTPException(409, "项目正在部署中")
+    if not p.github_url:
+        return {"project_id": project_id, "readme": None, "error": "未设置 GitHub URL"}
 
-    from app.tasks.deploy import deploy_project
+    repo = _parse_repo(p.github_url)
+    if not repo:
+        return {"project_id": project_id, "readme": None, "error": "无法解析 GitHub 仓库地址"}
 
-    p.deploy_status = "deploying"
-    p.deploy_log = "[deploy] 手动触发部署...\n"
-    db.commit()
-    db.refresh(p)
-    deploy_project.delay(project_id)
-    return p
+    import httpx
+    for branch in ["main", "master"]:
+        url = f"https://raw.githubusercontent.com/{repo}/{branch}/README.md"
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    return {"project_id": project_id, "readme": resp.text, "readme_url": url}
+        except Exception:
+            continue
 
-
-@router.post("/{project_id}/redeploy", response_model=ProjectOut, summary="重新部署")
-def redeploy(
-    project_id: int,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    p = db.get(Project, project_id)
-    if not p:
-        raise HTTPException(404, "项目不存在")
-
-    from app.tasks.deploy import deploy_project, stop_project
-
-    stop_project.delay(project_id)
-
-    p.deploy_status = "deploying"
-    p.deploy_log = "[redeploy] 重新部署中...\n"
-    db.commit()
-    db.refresh(p)
-    deploy_project.apply_async((project_id,), countdown=3)
-    return p
-
-
-@router.post("/{project_id}/stop", response_model=ProjectOut, summary="停止项目")
-def stop(
-    project_id: int,
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    p = db.get(Project, project_id)
-    if not p:
-        raise HTTPException(404, "项目不存在")
-
-    from app.tasks.deploy import stop_project
-
-    stop_project.delay(project_id)
-
-    p.deploy_status = "stopped"
-    db.commit()
-    db.refresh(p)
-    return p
-
-
-@router.get("/{project_id}/logs", summary="获取部署日志")
-def get_logs(
-    project_id: int,
-    offset: int = Query(0, ge=0, description="从第几个字符开始返回（用于增量轮询）"),
-    db: Session = Depends(get_db),
-    _: User = Depends(require_admin),
-):
-    p = db.get(Project, project_id)
-    if not p:
-        raise HTTPException(404, "项目不存在")
-    log = p.deploy_log or ""
-    return {
-        "project_id": project_id,
-        "status": p.deploy_status,
-        "log": log[offset:],
-        "total_length": len(log),
-        "deploy_url": p.deploy_url,
-    }
+    return {"project_id": project_id, "readme": None, "error": "README 获取失败"}
 
 
 # ── 封面图上传 ─────────────────────────────────────────────

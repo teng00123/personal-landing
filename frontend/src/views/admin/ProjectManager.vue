@@ -19,10 +19,6 @@
         <div class="proj-cover-wrap">
           <img v-if="p.cover_image" :src="p.cover_image" class="proj-cover" />
           <div v-else class="proj-cover-ph">{{ p.name[0]?.toUpperCase() }}</div>
-          <div class="proj-status-badge" :class="p.deploy_status">
-            <span class="dot" :class="p.deploy_status"></span>
-            {{ statusLabel(p.deploy_status) }}
-          </div>
         </div>
 
         <!-- 内容 -->
@@ -35,8 +31,8 @@
           </div>
 
           <div class="proj-meta">
-            <span v-if="p.deploy_url">
-              🔗 <a :href="p.deploy_url" target="_blank" class="deploy-link">{{ p.deploy_url }}</a>
+            <span v-if="p.github_url">
+              🔗 <a :href="p.github_url" target="_blank" class="deploy-link">{{ p.github_url }}</a>
             </span>
             <span v-if="p.framework" class="fw-badge">{{ p.framework }}</span>
           </div>
@@ -44,18 +40,8 @@
 
         <!-- 操作 -->
         <div class="proj-actions">
-          <el-button size="small" type="success" :icon="VideoPlay"
-            :disabled="p.deploy_status === 'deploying'"
-            @click="doDeploy(p)">
-            {{ p.deploy_status === 'deploying' ? '部署中...' : '部署' }}
-          </el-button>
-          <el-button size="small" type="warning" :icon="RefreshRight"
-            :disabled="p.deploy_status === 'deploying'"
-            @click="doRedeploy(p)">重部署</el-button>
-          <el-button size="small" type="info" :icon="VideoPause"
-            :disabled="p.deploy_status !== 'running'"
-            @click="doStop(p)">停止</el-button>
-          <el-button size="small" :icon="DocumentCopy" @click="openLogs(p)">日志</el-button>
+          <el-button size="small" type="primary" :icon="DocumentCopy" @click="fetchReadme(p)">查看 README</el-button>
+          <el-button size="small" :icon="Link" @click="window.open(p.github_url, '_blank')" :disabled="!p.github_url">在 GitHub 打开</el-button>
           <el-button size="small" :icon="Edit" @click="openForm(p)">编辑</el-button>
           <el-button size="small" type="danger" :icon="Delete" @click="removeProject(p)">删除</el-button>
         </div>
@@ -84,20 +70,8 @@
         <el-form-item label="描述">
           <el-input v-model="form.description" type="textarea" :rows="2" />
         </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="部署分支">
-              <el-input v-model="form.deploy_branch" placeholder="main" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="技术标签（逗号分隔）">
-              <el-input v-model="form.tech_stack" placeholder="Vue, FastAPI, Docker" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="自定义启动命令（可选，留空则自动识别）">
-          <el-input v-model="form.deploy_command" placeholder="node server.js --port {PORT}" />
+        <el-form-item label="技术标签（逗号分隔）">
+          <el-input v-model="form.tech_stack" placeholder="Vue, FastAPI, Docker" />
         </el-form-item>
         <el-form-item label="显示在主页">
           <el-switch v-model="form.is_published" active-text="是" inactive-text="否" />
@@ -106,35 +80,31 @@
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="saveProject">
-          {{ formId ? '保存' : '创建并部署' }}
+          {{ formId ? '保存' : '创建' }}
         </el-button>
       </template>
     </el-dialog>
 
-    <!-- ── 日志 Drawer ──────────────────────────────────── -->
-    <el-drawer v-model="logsVisible" :title="`部署日志 — ${logsProject?.name}`"
-      size="55%" direction="rtl" @close="stopLogPolling">
-      <div class="log-toolbar">
-        <el-tag :type="logStatusType" size="small">{{ statusLabel(logsProject?.deploy_status) }}</el-tag>
-        <span v-if="logsProject?.deploy_url" style="margin-left:12px;font-size:13px">
-          🔗 <a :href="logsProject.deploy_url" target="_blank" class="deploy-link">{{ logsProject.deploy_url }}</a>
-        </span>
-        <el-button size="small" style="margin-left:auto" :icon="RefreshRight" @click="fetchLogs(true)">刷新</el-button>
-      </div>
-      <div class="log-body" ref="logBodyRef">
-        <pre class="log-pre">{{ logContent || '（暂无日志）' }}</pre>
-      </div>
-    </el-drawer>
+    <!-- ── README 预览 Dialog ──────────────────────────── -->
+    <el-dialog v-model="readmeVisible" :title="`README — ${readmeProject?.name}`" width="720px">
+      <div v-if="readmeLoading" style="text-align:center;padding:40px">加载中...</div>
+      <div v-else-if="readmeError" style="color:#ef4444;padding:20px">{{ readmeError }}</div>
+      <pre v-else style="white-space:pre-wrap;word-break:break-all;font-size:13px;line-height:1.7;max-height:60vh;overflow-y:auto;background:#0d1117;padding:16px;border-radius:8px;color:#e2e8f0">{{ readmeContent }}</pre>
+      <template #footer>
+        <el-button @click="readmeVisible = false">关闭</el-button>
+        <el-button type="primary" @click="window.open(readmeProject?.github_url, '_blank')">在 GitHub 打开</el-button>
+      </template>
+    </el-dialog>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted, nextTick } from 'vue'
+import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search, Plus, VideoPlay, VideoPause, RefreshRight,
-  DocumentCopy, Edit, Delete,
+  Search, Plus, RefreshRight,
+  DocumentCopy, Edit, Delete, Link,
 } from '@element-plus/icons-vue'
 import { projectsApi } from '@/api/endpoints.js'
 
@@ -146,8 +116,7 @@ const pageSize = 12
 const loading  = ref(false)
 const searchQ  = ref('')
 
-const parseTags   = (t) => (t || '').split(',').map(s => s.trim()).filter(Boolean)
-const statusLabel = (s) => ({ pending:'待部署', deploying:'部署中', running:'运行中', failed:'失败', stopped:'已停止' }[s] ?? s)
+const parseTags = (t) => (t || '').split(',').map(s => s.trim()).filter(Boolean)
 
 async function loadList() {
   loading.value = true
@@ -162,18 +131,17 @@ async function loadList() {
 const formVisible = ref(false)
 const formId      = ref(null)
 const saving      = ref(false)
-const form        = ref({ name:'', github_url:'', description:'', deploy_branch:'main', tech_stack:'', deploy_command:'', is_published:true })
+const form        = ref({ name:'', github_url:'', description:'', tech_stack:'', is_published:true })
 
 function openForm(p) {
   formId.value = p?.id ?? null
   if (p) {
     form.value = {
       name: p.name, github_url: p.github_url, description: p.description ?? '',
-      deploy_branch: p.deploy_branch ?? 'main', tech_stack: p.tech_stack ?? '',
-      deploy_command: p.deploy_command ?? '', is_published: p.is_published,
+      tech_stack: p.tech_stack ?? '', is_published: p.is_published,
     }
   } else {
-    form.value = { name:'', github_url:'', description:'', deploy_branch:'main', tech_stack:'', deploy_command:'', is_published:true }
+    form.value = { name:'', github_url:'', description:'', tech_stack:'', is_published:true }
   }
   formVisible.value = true
 }
@@ -188,7 +156,7 @@ async function saveProject() {
       ElMessage.success('已保存')
     } else {
       await projectsApi.create(form.value)
-      ElMessage.success('项目已创建，自动开始部署')
+      ElMessage.success('项目已创建')
     }
     formVisible.value = false
     loadList()
@@ -197,39 +165,10 @@ async function saveProject() {
   } finally { saving.value = false }
 }
 
-// ── Deploy actions ────────────────────────────────────────
-async function doDeploy(p) {
-  try {
-    await projectsApi.deploy(p.id)
-    ElMessage.success('部署已触发')
-    startAutoRefresh()
-    loadList()
-  } catch (e) { ElMessage.error(e?.detail || '触发失败') }
-}
-
-async function doRedeploy(p) {
-  try {
-    await ElMessageBox.confirm(`重新部署「${p.name}」？将先停止再重新 clone & 构建。`, '确认重部署', {
-      type: 'warning', confirmButtonText: '重部署', cancelButtonText: '取消',
-    })
-    await projectsApi.redeploy(p.id)
-    ElMessage.success('重部署已触发')
-    startAutoRefresh()
-    loadList()
-  } catch {}
-}
-
-async function doStop(p) {
-  try {
-    await projectsApi.stop(p.id)
-    ElMessage.success('已停止')
-    loadList()
-  } catch (e) { ElMessage.error(e?.detail || '停止失败') }
-}
-
+// ── Delete ────────────────────────────────────────────────
 async function removeProject(p) {
   try {
-    await ElMessageBox.confirm(`确认删除「${p.name}」？进程将被停止。`, '删除确认', {
+    await ElMessageBox.confirm(`确认删除「${p.name}」？`, '删除确认', {
       type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消',
     })
     await projectsApi.remove(p.id)
@@ -238,72 +177,32 @@ async function removeProject(p) {
   } catch {}
 }
 
-// ── 自动刷新（部署中时轮询） ──────────────────────────────
-let refreshTimer = null
-function startAutoRefresh() {
-  if (refreshTimer) return
-  refreshTimer = setInterval(async () => {
-    await loadList()
-    const deploying = projects.value.some(p => p.deploy_status === 'deploying')
-    if (!deploying) stopAutoRefresh()
-  }, 3000)
-}
-function stopAutoRefresh() {
-  clearInterval(refreshTimer)
-  refreshTimer = null
-}
+// ── README ────────────────────────────────────────────────
+const readmeVisible = ref(false)
+const readmeProject = ref(null)
+const readmeContent = ref('')
+const readmeError   = ref('')
+const readmeLoading = ref(false)
 
-// ── Logs ──────────────────────────────────────────────────
-const logsVisible  = ref(false)
-const logsProject  = ref(null)
-const logContent   = ref('')
-const logBodyRef   = ref(null)
-let logOffset      = 0
-let logTimer       = null
-
-const logStatusType = computed(() => ({
-  running:'success', deploying:'warning', failed:'danger', stopped:'info', pending:'info',
-}[logsProject.value?.deploy_status] ?? 'info'))
-
-async function openLogs(p) {
-  logsProject.value = p
-  logContent.value  = ''
-  logOffset         = 0
-  logsVisible.value = true
-  await fetchLogs(true)
-  // 轮询（部署中时每 2s 刷新）
-  logTimer = setInterval(() => {
-    if (['deploying'].includes(logsProject.value?.deploy_status)) fetchLogs(false)
-    else stopLogPolling()
-  }, 2000)
-}
-
-async function fetchLogs(reset = false) {
-  if (!logsProject.value) return
-  if (reset) { logContent.value = ''; logOffset = 0 }
+async function fetchReadme(p) {
+  readmeProject.value = p
+  readmeContent.value = ''
+  readmeError.value = ''
+  readmeLoading.value = true
+  readmeVisible.value = true
   try {
-    const res = await projectsApi.logs(logsProject.value.id, logOffset)
-    if (res.log) {
-      logContent.value += res.log
-      logOffset = res.total_length
+    const res = await projectsApi.readme(p.id)
+    if (res.readme) {
+      readmeContent.value = res.readme
+    } else {
+      readmeError.value = res.error || '未找到 README'
     }
-    // 同步状态
-    logsProject.value = { ...logsProject.value, deploy_status: res.status, deploy_url: res.deploy_url }
-    // 滚动到底部
-    await nextTick()
-    if (logBodyRef.value) logBodyRef.value.scrollTop = logBodyRef.value.scrollHeight
-  } catch {}
+  } catch (e) {
+    readmeError.value = '加载失败'
+  } finally {
+    readmeLoading.value = false
+  }
 }
-
-function stopLogPolling() {
-  clearInterval(logTimer)
-  logTimer = null
-}
-
-onUnmounted(() => {
-  stopAutoRefresh()
-  stopLogPolling()
-})
 
 // 初始加载
 loadList()
@@ -326,19 +225,6 @@ loadList()
   display:flex; align-items:center; justify-content:center;
   font-size:3rem; font-weight:800; color:rgba(59,130,246,.3);
 }
-.proj-status-badge {
-  position:absolute; top:10px; right:10px;
-  display:flex; align-items:center; gap:5px;
-  padding:3px 10px; border-radius:20px; font-size:.75rem; font-weight:600;
-  background:rgba(15,23,42,.75); backdrop-filter:blur(4px);
-  color:#94a3b8;
-}
-.proj-status-badge.running   { color:#10b981; }
-.proj-status-badge.deploying { color:#f59e0b; }
-.proj-status-badge.failed    { color:#ef4444; }
-.dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
-.dot.running   { animation: pulse 2s infinite; }
-.dot.deploying { animation: pulse 1s infinite; }
 
 /* 内容 */
 .proj-body  { padding:0 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
@@ -354,9 +240,4 @@ loadList()
 .proj-actions { padding:12px 16px; border-top:1px solid #1e293b; display:flex; flex-wrap:wrap; gap:6px; }
 
 .pager { display:flex; justify-content:flex-end; margin-top:20px; }
-
-/* 日志 */
-.log-toolbar { display:flex; align-items:center; padding:0 0 12px; border-bottom:1px solid #1e293b; flex-wrap:wrap; gap:8px; }
-.log-body    { margin-top:12px; background:#0d1117; border-radius:8px; height:calc(100vh - 180px); overflow-y:auto; }
-.log-pre     { padding:16px; font-family:'JetBrains Mono','Fira Code',monospace; font-size:12.5px; line-height:1.7; color:#e2e8f0; white-space:pre-wrap; word-break:break-all; margin:0; }
 </style>
