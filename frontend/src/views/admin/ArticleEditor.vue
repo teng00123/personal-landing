@@ -33,7 +33,9 @@
                 <el-upload
                   :show-file-list="false"
                   accept="image/*"
-                  :before-upload="uploadCover"
+                  action="#"
+                  :auto-upload="false"
+                  :on-change="(f) => uploadCover(f.raw)"
                   class="cover-upload"
                 >
                   <div class="cover-overlay">更换</div>
@@ -188,10 +190,10 @@ async function save() {
 
 // ── 封面图上传 ────────────────────────────────────────────
 async function uploadCover(file) {
+  if (!file) return
   if (!props.articleId) {
-    // 先保存一下文章再上传封面
     ElMessage.info('请先保存文章，再上传封面图')
-    return false
+    return
   }
   const fd = new FormData()
   fd.append('file', file)
@@ -200,7 +202,6 @@ async function uploadCover(file) {
     form.value.cover_image = res.cover_image
     ElMessage.success('封面已更新')
   } catch { ElMessage.error('封面上传失败') }
-  return false
 }
 
 // ── 重新导入 .md ──────────────────────────────────────────
@@ -269,7 +270,8 @@ function onInput() { /* 预览通过 computed 自动更新 */ }
 .cover-box      { position: relative; width: 120px; height: 80px; cursor: pointer; border-radius: 8px; overflow: hidden; background: #1e293b; }
 .cover-preview  { width: 100%; height: 100%; object-fit: cover; }
 .cover-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: .8125rem; color: #64748b; }
-.cover-upload   { position: absolute; inset: 0; opacity: 0; }
+.cover-upload   { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; }
+.cover-upload :deep(.el-upload) { width: 100%; height: 100%; display: block; }
 .cover-overlay  { width: 100%; height: 100%; }
 
 /* MD 编辑器 */
