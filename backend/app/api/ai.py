@@ -5,6 +5,7 @@ AI 功能模块 — Iteration 8
   - 内容智能分析（摘要生成、关键词提取、情感分析）
   - 个性化推荐引擎（协同过滤 + 内容相似度）
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -29,15 +30,17 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 # AI Provider 抽象（支持 OpenAI / 本地 Ollama / Mock）
 # ─────────────────────────────────────────────────────────
 
+
 class AIProvider:
     """可替换的 AI 后端封装"""
 
     def __init__(self):
         import os
-        self.openai_key  = os.getenv("OPENAI_API_KEY", "")
+
+        self.openai_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-        self.model       = os.getenv("AI_MODEL", "gpt-3.5-turbo")
-        self.ollama_url  = os.getenv("OLLAMA_URL", "")
+        self.model = os.getenv("AI_MODEL", "gpt-3.5-turbo")
+        self.ollama_url = os.getenv("OLLAMA_URL", "")
 
     async def chat(self, system: str, user: str, max_tokens: int = 512) -> str:
         """调用 AI 模型，返回文本；无配置时走 Mock"""
@@ -56,7 +59,7 @@ class AIProvider:
                     "model": self.model,
                     "messages": [
                         {"role": "system", "content": system},
-                        {"role": "user",   "content": user},
+                        {"role": "user", "content": user},
                     ],
                     "max_tokens": max_tokens,
                     "temperature": 0.7,
@@ -92,19 +95,22 @@ _ai = AIProvider()
 # 8.1 写作助手
 # ─────────────────────────────────────────────────────────
 
+
 class WriteRequest(BaseModel):
-    topic:   str
+    topic: str
     outline: Optional[str] = None
-    length:  Optional[str] = "medium"    # short / medium / long
-    style:   Optional[str] = "technical" # technical / casual / academic
+    length: Optional[str] = "medium"  # short / medium / long
+    style: Optional[str] = "technical"  # technical / casual / academic
+
 
 class OptimizeRequest(BaseModel):
     content: str
-    goal:    Optional[str] = "clarity"  # clarity / seo / engagement
+    goal: Optional[str] = "clarity"  # clarity / seo / engagement
+
 
 class GrammarRequest(BaseModel):
     content: str
-    lang:    Optional[str] = "zh"        # zh / en
+    lang: Optional[str] = "zh"  # zh / en
 
 
 @router.post("/write/generate", summary="AI 文章生成")
@@ -136,13 +142,13 @@ async def generate_article(req: WriteRequest, cache: CacheManager = Depends(get_
 @router.post("/write/optimize", summary="内容优化建议")
 async def optimize_content(req: OptimizeRequest, cache: CacheManager = Depends(get_cache)):
     goal_desc = {
-        "clarity":    "提升表达清晰度和可读性",
-        "seo":        "优化 SEO 关键词分布和标题结构",
+        "clarity": "提升表达清晰度和可读性",
+        "seo": "优化 SEO 关键词分布和标题结构",
         "engagement": "提升用户参与感和情感共鸣",
     }.get(req.goal, req.goal)
 
     system = f"你是内容编辑专家，目标：{goal_desc}。给出具体可操作的优化建议，用编号列表输出。"
-    user   = f"请分析并优化以下内容：\n\n{req.content[:2000]}"
+    user = f"请分析并优化以下内容：\n\n{req.content[:2000]}"
 
     try:
         suggestions = await _ai.chat(system, user, max_tokens=400)
@@ -161,7 +167,7 @@ async def check_grammar(req: GrammarRequest, cache: CacheManager = Depends(get_c
     lang_hint = "中文" if req.lang == "zh" else "English"
     system = (
         f"你是 {lang_hint} 语言专家。检查文本中的语法错误、用词不当、标点问题，"
-        "以 JSON 格式返回: {{\"score\": 0-100, \"issues\": [{{\"pos\": \"...\", \"issue\": \"...\", \"fix\": \"...\"}}]}}"
+        '以 JSON 格式返回: {{"score": 0-100, "issues": [{{"pos": "...", "issue": "...", "fix": "..."}}]}}'
     )
     user = f"检查以下文本：\n\n{req.content[:1500]}"
 
@@ -183,9 +189,10 @@ async def check_grammar(req: GrammarRequest, cache: CacheManager = Depends(get_c
 # 8.2 内容智能分析
 # ─────────────────────────────────────────────────────────
 
+
 class AnalyzeRequest(BaseModel):
     content: str
-    title:   Optional[str] = None
+    title: Optional[str] = None
 
 
 @router.post("/analyze/summary", summary="自动摘要生成")
@@ -195,7 +202,7 @@ async def generate_summary(req: AnalyzeRequest, cache: CacheManager = Depends(ge
         return {"summary": cached, "cached": True}
 
     system = "你是专业摘要生成器。将输入文章压缩为 2-3 句话的摘要，保留核心观点，中文输出。"
-    user   = f"{'标题：' + req.title + chr(10) if req.title else ''}内容：\n{req.content[:3000]}"
+    user = f"{'标题：' + req.title + chr(10) if req.title else ''}内容：\n{req.content[:3000]}"
 
     try:
         summary = await _ai.chat(system, user, max_tokens=200)
@@ -213,7 +220,7 @@ async def extract_keywords(req: AnalyzeRequest, cache: CacheManager = Depends(ge
 
     system = (
         "从文章中提取 5-10 个最重要的关键词/短语，"
-        "以 JSON 格式返回：{{\"keywords\": [{{\"word\": \"...\", \"weight\": 0.0-1.0}}]}}"
+        '以 JSON 格式返回：{{"keywords": [{{"word": "...", "weight": 0.0-1.0}}]}}'
     )
     user = f"{req.content[:2000]}"
 
@@ -239,7 +246,7 @@ async def analyze_sentiment(req: AnalyzeRequest, cache: CacheManager = Depends(g
 
     system = (
         "分析文本情感倾向，以 JSON 返回："
-        "{{\"sentiment\": \"positive|neutral|negative\", \"score\": -1.0~1.0, \"emotions\": [\"...\"], \"reason\": \"...\"}}"
+        '{{"sentiment": "positive|neutral|negative", "score": -1.0~1.0, "emotions": ["..."], "reason": "..."}}'
     )
     user = f"{req.content[:1000]}"
 
@@ -259,10 +266,11 @@ async def analyze_sentiment(req: AnalyzeRequest, cache: CacheManager = Depends(g
 # 8.3 个性化推荐引擎
 # ─────────────────────────────────────────────────────────
 
+
 class RecommendRequest(BaseModel):
-    article_id:   Optional[int] = None  # 基于文章的相似推荐
+    article_id: Optional[int] = None  # 基于文章的相似推荐
     user_history: Optional[list[int]] = []  # 用户阅读历史 (article_id 列表)
-    limit:        Optional[int] = 5
+    limit: Optional[int] = 5
 
 
 def _cosine_similarity(vec_a: dict[str, float], vec_b: dict[str, float]) -> float:
@@ -316,6 +324,7 @@ async def recommend_articles(
 
     # 拉取所有文章（生产中应分批）
     from sqlalchemy import text as sa_text
+
     rows = db.execute(
         sa_text("SELECT id, title, summary, tags FROM articles WHERE is_published=1 LIMIT 200")
     ).fetchall()
@@ -323,8 +332,10 @@ async def recommend_articles(
     if not rows:
         return {"recommendations": [], "strategy": "empty"}
 
-    articles = [{"id": r[0], "title": r[1] or "", "content": r[2] or "", "tags": r[3] or ""} for r in rows]
-    vectors  = _build_tfidf(articles)
+    articles = [
+        {"id": r[0], "title": r[1] or "", "content": r[2] or "", "tags": r[3] or ""} for r in rows
+    ]
+    vectors = _build_tfidf(articles)
     id_to_idx = {a["id"]: i for i, a in enumerate(articles)}
 
     scores: dict[int, float] = defaultdict(float)

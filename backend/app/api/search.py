@@ -6,6 +6,7 @@
   - 搜索历史记录（per-session，存 Redis）
   - Elasticsearch 全文检索（可选，ES 可用时自动切换）
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/search", tags=["search"])
 logger = logging.getLogger(__name__)
 
 # ── Response Schemas ──────────────────────────────────────
+
 
 class ArticleHit(BaseModel):
     id: int
@@ -58,6 +60,7 @@ class SuggestResult(BaseModel):
 
 
 # ── 全文搜索 ──────────────────────────────────────────────
+
 
 @router.get("", response_model=SearchResult, summary="全文搜索")
 async def full_search(
@@ -120,6 +123,7 @@ async def full_search(
 
 # ── 搜索建议 ──────────────────────────────────────────────
 
+
 @router.get("/suggest", response_model=SuggestResult, summary="搜索建议 / 自动补全")
 async def suggest(
     q: str = Query(..., min_length=1, max_length=50),
@@ -148,6 +152,7 @@ async def suggest(
 
 # ── 热门搜索词 ────────────────────────────────────────────
 
+
 @router.get("/hot", summary="热门搜索词")
 async def hot_keywords(
     limit: int = Query(8, ge=1, le=20),
@@ -156,10 +161,10 @@ async def hot_keywords(
     """从 Redis zset 获取热门搜索词（按频次排序）"""
     try:
         from app.utils.cache import get_redis
+
         redis = get_redis()
         items = await redis.zrevrangebyscore(
-            "pl:search:hot", "+inf", "-inf",
-            start=0, num=limit, withscores=True
+            "pl:search:hot", "+inf", "-inf", start=0, num=limit, withscores=True
         )
         return {"keywords": [{"word": w, "count": int(s)} for w, s in items]}
     except Exception:

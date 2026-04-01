@@ -159,6 +159,7 @@ async def fetch_readme(project_id: int, db: Session = Depends(get_db)):
         return {"project_id": project_id, "readme": None, "error": "无法解析 GitHub 仓库地址"}
 
     import httpx
+
     for branch in ["main", "master"]:
         url = f"https://raw.githubusercontent.com/{repo}/{branch}/README.md"
         try:

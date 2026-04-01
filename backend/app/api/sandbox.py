@@ -5,6 +5,7 @@
   - 代码片段保存/分享
   - 语言列表
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -28,56 +29,60 @@ router = APIRouter(prefix="/sandbox", tags=["sandbox"])
 
 LANGUAGES: dict[str, dict] = {
     "python": {
-        "name":       "Python 3",
-        "image":      "python:3.12-alpine",
-        "cmd":        ["python3", "-c", "{code}"],
-        "file_ext":   ".py",
-        "timeout":    10,
+        "name": "Python 3",
+        "image": "python:3.12-alpine",
+        "cmd": ["python3", "-c", "{code}"],
+        "file_ext": ".py",
+        "timeout": 10,
     },
     "javascript": {
-        "name":       "Node.js",
-        "image":      "node:20-alpine",
-        "cmd":        ["node", "-e", "{code}"],
-        "file_ext":   ".js",
-        "timeout":    10,
+        "name": "Node.js",
+        "image": "node:20-alpine",
+        "cmd": ["node", "-e", "{code}"],
+        "file_ext": ".js",
+        "timeout": 10,
     },
     "bash": {
-        "name":       "Bash",
-        "image":      "bash:5-alpine3.18",
-        "cmd":        ["bash", "-c", "{code}"],
-        "file_ext":   ".sh",
-        "timeout":    5,
+        "name": "Bash",
+        "image": "bash:5-alpine3.18",
+        "cmd": ["bash", "-c", "{code}"],
+        "file_ext": ".sh",
+        "timeout": 5,
     },
     "go": {
-        "name":       "Go",
-        "image":      "golang:1.22-alpine",
-        "file_ext":   ".go",
-        "timeout":    15,
-        "via_file":   True,  # Go 需要写文件再运行
+        "name": "Go",
+        "image": "golang:1.22-alpine",
+        "file_ext": ".go",
+        "timeout": 15,
+        "via_file": True,  # Go 需要写文件再运行
     },
 }
 
 # ── Schemas ───────────────────────────────────────────────
 
+
 class RunRequest(BaseModel):
     language: str
-    code:     str
-    stdin:    Optional[str] = None
+    code: str
+    stdin: Optional[str] = None
+
 
 class RunResult(BaseModel):
-    stdout:   str
-    stderr:   str
+    stdout: str
+    stderr: str
     exit_code: int
     duration_ms: int
     language: str
 
+
 class SnippetSave(BaseModel):
     language: str
-    code:     str
-    title:    Optional[str] = "Untitled"
+    code: str
+    title: Optional[str] = "Untitled"
 
 
 # ── 代码执行（Docker 沙箱）────────────────────────────────
+
 
 @router.get("/languages", summary="获取支持的语言列表")
 def list_languages():
@@ -95,6 +100,7 @@ async def run_code(req: RunRequest, cache: CacheManager = Depends(get_cache)):
     cache_key = f"sandbox:{req.language}:{hashlib.sha256(req.code.encode()).hexdigest()[:16]}"
     if cached := await cache.get(cache_key):
         import json
+
         return RunResult(**json.loads(cached))
 
     lang = LANGUAGES[req.language]
@@ -111,11 +117,15 @@ async def run_code(req: RunRequest, cache: CacheManager = Depends(get_cache)):
     except Exception as e:
         logger.error("Docker run failed: %s", e)
         result = RunResult(
-            stdout="", stderr=f"沙箱执行失败: {e}",
-            exit_code=-1, duration_ms=0, language=req.language,
+            stdout="",
+            stderr=f"沙箱执行失败: {e}",
+            exit_code=-1,
+            duration_ms=0,
+            language=req.language,
         )
 
     import json
+
     await cache.set(cache_key, json.dumps(result.model_dump()), ttl=30)
     return result
 
@@ -129,21 +139,27 @@ async def _docker_run(req: RunRequest, lang: dict, start: float) -> RunResult:
     if lang.get("via_file"):
         # 需要文件执行（如 Go）— 简化为 mock
         return await _mock_run(
-            req, lang, start,
-            note="Go file-based execution requires volume mount; using mock in CI"
+            req, lang, start, note="Go file-based execution requires volume mount; using mock in CI"
         )
 
     inner_cmd = lang["cmd"][:]
     inner_cmd[-1] = inner_cmd[-1].replace("{code}", req.code)
 
     docker_cmd = [
-        "docker", "run", "--rm",
-        "--name", container_name,
-        "--network", "none",           # 禁止网络
-        "--memory", "64m",             # 内存限制
-        "--cpus", "0.5",              # CPU 限制
-        "--read-only",                 # 只读文件系统
-        "--security-opt", "no-new-privileges",
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        container_name,
+        "--network",
+        "none",  # 禁止网络
+        "--memory",
+        "64m",  # 内存限制
+        "--cpus",
+        "0.5",  # CPU 限制
+        "--read-only",  # 只读文件系统
+        "--security-opt",
+        "no-new-privileges",
         lang["image"],
     ] + inner_cmd
 
@@ -165,8 +181,10 @@ async def _docker_run(req: RunRequest, lang: dict, start: float) -> RunResult:
         except Exception:
             pass
         return RunResult(
-            stdout="", stderr=f"执行超时（{timeout}s）",
-            exit_code=124, duration_ms=int((time.monotonic() - start) * 1000),
+            stdout="",
+            stderr=f"执行超时（{timeout}s）",
+            exit_code=124,
+            duration_ms=int((time.monotonic() - start) * 1000),
             language=req.language,
         )
 
@@ -192,7 +210,8 @@ async def _mock_run(req: RunRequest, lang: dict, start: float, note: str = "") -
         mock_out += f"注: {note}\n"
     mock_out += "（配置 Docker 后将真实执行代码）"
     return RunResult(
-        stdout=mock_out, stderr="",
+        stdout=mock_out,
+        stderr="",
         exit_code=0,
         duration_ms=int((time.monotonic() - start) * 1000),
         language=req.language,
@@ -200,6 +219,7 @@ async def _mock_run(req: RunRequest, lang: dict, start: float, note: str = "") -
 
 
 # ── 代码片段保存/分享 ────────────────────────────────────
+
 
 @router.post("/snippets", summary="保存代码片段（生成分享链接）")
 async def save_snippet(req: SnippetSave, cache: CacheManager = Depends(get_cache)):
@@ -210,12 +230,16 @@ async def save_snippet(req: SnippetSave, cache: CacheManager = Depends(get_cache
 
     snippet_id = secrets.token_urlsafe(8)
     import json
-    data = json.dumps({
-        "id":       snippet_id,
-        "language": req.language,
-        "title":    req.title,
-        "code":     req.code,
-    }, ensure_ascii=False)
+
+    data = json.dumps(
+        {
+            "id": snippet_id,
+            "language": req.language,
+            "title": req.title,
+            "code": req.code,
+        },
+        ensure_ascii=False,
+    )
     await cache.set(f"snippet:{snippet_id}", data, ttl=86400 * 7)  # 保存 7 天
     return {"id": snippet_id, "share_url": f"/playground?snippet={snippet_id}"}
 
@@ -223,6 +247,7 @@ async def save_snippet(req: SnippetSave, cache: CacheManager = Depends(get_cache
 @router.get("/snippets/{snippet_id}", summary="获取代码片段")
 async def get_snippet(snippet_id: str, cache: CacheManager = Depends(get_cache)):
     import json
+
     data = await cache.get(f"snippet:{snippet_id}")
     if not data:
         raise HTTPException(404, "片段不存在或已过期")

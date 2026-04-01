@@ -5,6 +5,7 @@ FastAPI 入口 — Iteration 4 (性能优化 + 监控) + Iteration 5 (UX)
   - 社交互动 API /api/v1/social (点赞/评论)
   - WebSocket 实时通知 /api/v1/ws/notifications
 """
+
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -43,6 +44,7 @@ logger = logging.getLogger("app")
 
 # ── Lifespan ──────────────────────────────────────────────
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs("./uploads/covers", exist_ok=True)
@@ -53,14 +55,18 @@ async def lifespan(app: FastAPI):
         from app.api.social import Comment
         from app.db.session import Base, engine
         from app.utils.audit import AuditLog
-        Base.metadata.create_all(bind=engine, tables=[
-            Comment.__table__,
-            AuditLog.__table__,
-            Follow.__table__,
-            Message.__table__,
-            Activity.__table__,
-            ActivityRegistration.__table__,
-        ])
+
+        Base.metadata.create_all(
+            bind=engine,
+            tables=[
+                Comment.__table__,
+                AuditLog.__table__,
+                Follow.__table__,
+                Message.__table__,
+                Activity.__table__,
+                ActivityRegistration.__table__,
+            ],
+        )
     except Exception as e:
         logger.warning("table init skipped: %s", e)
     logger.info("personal-landing API started", extra={"version": "1.0.0"})
@@ -95,6 +101,7 @@ app.add_middleware(
 
 # ── Exception Handlers ─────────────────────────────────────
 
+
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
     return JSONResponse(status_code=404, content={"detail": i18n.t("errors.article_not_found")})
@@ -114,24 +121,26 @@ app.mount("/uploads", StaticFiles(directory="./uploads"), name="uploads")
 # ── Routers ────────────────────────────────────────────────
 
 PREFIX = "/api/v1"
-app.include_router(auth_router,     prefix=PREFIX)
-app.include_router(profile_router,  prefix=PREFIX)
+app.include_router(auth_router, prefix=PREFIX)
+app.include_router(profile_router, prefix=PREFIX)
 app.include_router(articles_router, prefix=PREFIX)
 app.include_router(projects_router, prefix=PREFIX)
-app.include_router(search_router,    prefix=PREFIX)   # Iter 5
-app.include_router(social_router,    prefix=PREFIX)   # Iter 5
-app.include_router(ws_router,        prefix=PREFIX)   # Iter 5
-app.include_router(security_router,  prefix=PREFIX)   # Iter 6
-app.include_router(ai_router,        prefix=PREFIX)   # Iter 8
-app.include_router(sandbox_router,   prefix=PREFIX)   # Iter 8
-app.include_router(community_router, prefix=PREFIX)   # Iter 8
+app.include_router(search_router, prefix=PREFIX)  # Iter 5
+app.include_router(social_router, prefix=PREFIX)  # Iter 5
+app.include_router(ws_router, prefix=PREFIX)  # Iter 5
+app.include_router(security_router, prefix=PREFIX)  # Iter 6
+app.include_router(ai_router, prefix=PREFIX)  # Iter 8
+app.include_router(sandbox_router, prefix=PREFIX)  # Iter 8
+app.include_router(community_router, prefix=PREFIX)  # Iter 8
 
 
 # ── Health Check ──────────────────────────────────────────
 
+
 @app.get("/health", tags=["ops"], summary="健康检查")
 async def health():
     from app.utils.cache import get_redis
+
     redis_ok = False
     try:
         redis_ok = await get_redis().ping()
