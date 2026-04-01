@@ -17,4 +17,10 @@ backend/deploy_workspace/
 .vscode/
 .gtm.yaml
 .gtmproject.yaml
-frontend/package-lock.jsonbackend/test_db.sqlite3
+frontend/package-lock.json
+backend/test_db.sqlite3
+# Redis / DB dumps
+dump.rdb
+*.rdb
+# Uploaded files (user content, not source)
+backend/uploads/
