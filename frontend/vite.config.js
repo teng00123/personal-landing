@@ -15,9 +15,10 @@ export default defineConfig({
     monacoEditorPlugin({ languages: ['python', 'javascript', 'shell', 'go'] }),
     AutoImport({ resolvers: [ElementPlusResolver()] }),
     Components({ resolvers: [ElementPlusResolver()] }),
-    // PWA / Service Worker
+    // PWA / Service Worker（CI 环境跳过 SW 生成避免 workbox precache 报错）
     VitePWA({
       registerType: 'autoUpdate',
+      disable: process.env.CI === 'true',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
