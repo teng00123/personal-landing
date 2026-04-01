@@ -151,6 +151,9 @@
       </div>
     </footer>
 
+    <!-- 访客 AI 对话浮窗 -->
+    <VisitorChat />
+
   </div>
 </template>
 
@@ -161,6 +164,7 @@ import { useAuthStore } from '@/store/auth.js'
 import SearchModal from '@/components/SearchModal.vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import VisitorChat from '@/components/VisitorChat.vue'
 
 const auth     = useAuthStore()
 const profile  = ref(null)
