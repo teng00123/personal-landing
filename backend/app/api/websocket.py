@@ -5,6 +5,7 @@ WebSocket 实时通知 — Iteration 5
   - 服务端广播消息
   - 部署任务状态实时推送
 """
+
 import asyncio
 import logging
 
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/ws", tags=["realtime"])
 logger = logging.getLogger(__name__)
 
 # ── 连接管理 ──────────────────────────────────────────────
+
 
 class ConnectionManager:
     def __init__(self):
@@ -55,6 +57,7 @@ manager = ConnectionManager()
 
 # ── WebSocket 端点 ────────────────────────────────────────
 
+
 @router.websocket("/notifications")
 async def ws_notifications(websocket: WebSocket, channel: str = "system"):
     """
@@ -64,11 +67,13 @@ async def ws_notifications(websocket: WebSocket, channel: str = "system"):
     await manager.connect(websocket, channel)
     try:
         # 发送欢迎消息
-        await websocket.send_json({
-            "type": "connected",
-            "channel": channel,
-            "message": f"已连接到 {channel} 频道",
-        })
+        await websocket.send_json(
+            {
+                "type": "connected",
+                "channel": channel,
+                "message": f"已连接到 {channel} 频道",
+            }
+        )
         # 保持连接，监听客户端 ping
         while True:
             try:
@@ -85,21 +90,27 @@ async def ws_notifications(websocket: WebSocket, channel: str = "system"):
 
 # ── 供内部调用的广播函数 ──────────────────────────────────
 
+
 async def notify_deploy(task_id: str, status: str, message: str = "", progress: int = 0):
     """部署任务状态通知"""
-    await manager.broadcast("deploy", {
-        "type": "deploy_update",
-        "task_id": task_id,
-        "status": status,   # pending | running | success | failed
-        "message": message,
-        "progress": progress,
-    })
+    await manager.broadcast(
+        "deploy",
+        {
+            "type": "deploy_update",
+            "task_id": task_id,
+            "status": status,  # pending | running | success | failed
+            "message": message,
+            "progress": progress,
+        },
+    )
 
 
 async def notify_system(message: str, level: str = "info"):
     """系统通知"""
-    await manager.broadcast_all({
-        "type": "system",
-        "level": level,     # info | warning | error
-        "message": message,
-    })
+    await manager.broadcast_all(
+        {
+            "type": "system",
+            "level": level,  # info | warning | error
+            "message": message,
+        }
+    )

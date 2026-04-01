@@ -2,15 +2,20 @@
 Prometheus 指标收集器 — Iteration 4
 暴露 /metrics 端点供 Prometheus 抓取
 """
-import time
+
 import logging
-from typing import Callable
+import time
+from collections.abc import Callable
 
 from fastapi import FastAPI, Request, Response
 from prometheus_client import (
-    Counter, Histogram, Gauge, Info,
-    generate_latest, CONTENT_TYPE_LATEST,
+    CONTENT_TYPE_LATEST,
     REGISTRY,
+    Counter,
+    Gauge,
+    Histogram,
+    Info,
+    generate_latest,
 )
 
 logger = logging.getLogger(__name__)
@@ -94,6 +99,7 @@ async def metrics_middleware(request: Request, call_next: Callable) -> Response:
 
 # ── /metrics 端点 ─────────────────────────────────────────
 
+
 def metrics_endpoint():
     """返回 Prometheus 格式的指标数据"""
     data = generate_latest(REGISTRY)
@@ -101,6 +107,7 @@ def metrics_endpoint():
 
 
 # ── 注册到 FastAPI ─────────────────────────────────────────
+
 
 def setup_metrics(app: FastAPI) -> None:
     """在 app 启动时注册中间件和 /metrics 路由"""

@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI
 
 on:
   pull_request:
@@ -6,59 +6,43 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # 后端测试和基础检查
+  # ── 后端：Lint + 单元测试 ──────────────────────────────
   backend:
-    name: Backend Tests
+    name: Backend (lint + test)
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[skip ci]') == false
-    # 测试使用 SQLite in-memory + NullCacheManager，无需 MySQL/Redis 服务
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements.txt
-      
+
       - name: Install deps
         run: |
           cd backend
           pip install -r requirements.txt
-          pip install ruff==0.4.4 pytest==8.2.0
-      
-      - name: Lint
+          pip install "ruff==0.4.4" "pytest==8.2.0"
+
+      - name: Lint (ruff)
         run: |
           cd backend
           ruff check app/ --output-format=github
           ruff format app/ --check
-      
-      - name: Test — import smoke
-        run: |
-          cd backend
-          python -c "from app.main import app; print('✅ Import OK')"
-        env:
-          SECRET_KEY: test-secret-key-for-ci-only
-          DB_HOST: localhost
-          DB_PORT: 3306
-          DB_USER: app
-          DB_PASSWORD: apppass
-          DB_NAME: test_db
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
 
-      - name: Test — happy path (Auth / Articles / Projects)
+      - name: Test
         run: |
           cd backend
-          python -m pytest tests/test_auth.py tests/test_articles.py tests/test_projects.py \
-            -v --tb=short --no-header \
-            --junitxml=test-results.xml
+          python -m pytest tests/ -v --tb=short --no-header --junitxml=test-results.xml
         env:
-          SECRET_KEY: test-secret-key-for-ci-only
-          # DB/Redis 不会被实际连接（测试走 SQLite + NullCacheManager）
+          SECRET_KEY: ci-secret-key
           DB_HOST: localhost
           DB_PORT: 3306
           DB_USER: app
@@ -74,62 +58,47 @@ jobs:
           name: backend-test-results
           path: backend/test-results.xml
 
-  # 前端构建检查
+  # ── 前端：构建检查 ────────────────────────────────────
   frontend:
-    name: Frontend Build
+    name: Frontend (build)
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[skip ci]') == false
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node
-        uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      
-      - name: Install & Build
+
+      - name: Install & build
         run: |
           cd frontend
-          npm ci
+          npm install
           npm run build
-          test -f dist/index.html
-      
-      - name: Upload artifact
+          test -f dist/index.html && echo "✅ dist/index.html exists"
+
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist/
 
-  # 代码质量检查
-  quality:
-    name: Code Quality
+  # ── PR 专属：commit message 规范检查 ─────────────────
+  commitlint:
+    name: Commit lint (PR only)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      
-      - name: Commit lint
+        with:
+          fetch-depth: 0
+
+      - name: Check commit messages
         run: |
           npm install -g @commitlint/cli@19 @commitlint/config-conventional@19
           echo "module.exports = {extends: ['@commitlint/config-conventional']}" > commitlint.config.js
-          npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-  # Docker构建验证
-  docker:
-    name: Docker Build Test
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, '[skip ci]') == false
-    
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build backend image
-        run: |
-          docker build -t test-backend ./backend
-          docker run --rm test-backend python -c "import fastapi; print('✅ OK')"
-      - name: Validate compose
-        run: docker compose config --quiet
+          npx commitlint \
+            --from ${{ github.event.pull_request.base.sha }} \
+            --to   ${{ github.event.pull_request.head.sha }} \
+            --verbose

@@ -4,6 +4,7 @@
   - 文章点赞 / 取消点赞（Redis 计数，IP 去重）
   - 评论系统（匿名 + 楼层结构）
 """
+
 from __future__ import annotations
 
 import logging
@@ -24,15 +25,18 @@ logger = logging.getLogger(__name__)
 
 # ── 评论模型 ──────────────────────────────────────────────
 
+
 class Comment(Base):
     __tablename__ = "comments"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    article_id = Column(Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
-    parent_id  = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
-    nickname   = Column(String(50), nullable=False)
-    email      = Column(String(120), nullable=True)
-    content    = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    article_id = Column(
+        Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    parent_id = Column(Integer, ForeignKey("comments.id", ondelete="CASCADE"), nullable=True)
+    nickname = Column(String(50), nullable=False)
+    email = Column(String(120), nullable=True)
+    content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
     replies = relationship("Comment", backref="parent", remote_side=[id], lazy="select")
@@ -40,27 +44,29 @@ class Comment(Base):
 
 # ── Schemas ───────────────────────────────────────────────
 
+
 class CommentCreate(BaseModel):
     article_id: int
-    parent_id:  Optional[int] = None
-    nickname:   constr(min_length=1, max_length=50)
-    email:      Optional[str] = None
-    content:    constr(min_length=1, max_length=2000)
+    parent_id: Optional[int] = None
+    nickname: constr(min_length=1, max_length=50)
+    email: Optional[str] = None
+    content: constr(min_length=1, max_length=2000)
 
 
 class CommentOut(BaseModel):
-    id:         int
+    id: int
     article_id: int
-    parent_id:  Optional[int] = None
-    nickname:   str
-    content:    str
+    parent_id: Optional[int] = None
+    nickname: str
+    content: str
     created_at: datetime
-    replies:    list[CommentOut] = []
+    replies: list[CommentOut] = []
 
     model_config = {"from_attributes": True}
 
 
 # ── 点赞 ──────────────────────────────────────────────────
+
 
 @router.post("/articles/{article_id}/like", summary="点赞/取消点赞")
 async def toggle_like(
@@ -71,9 +77,10 @@ async def toggle_like(
     """用 Redis set 做 IP 去重，保证每个 IP 只能点一次"""
     ip = request.client.host or "unknown"
     ip_set_key = f"likes:ips:{article_id}"
-    count_key  = f"likes:count:{article_id}"
+    count_key = f"likes:count:{article_id}"
 
     from app.utils.cache import get_redis
+
     redis = get_redis()
 
     already = await redis.sismember(f"pl:{ip_set_key}", ip)
@@ -90,6 +97,7 @@ async def toggle_like(
 @router.get("/articles/{article_id}/like", summary="获取点赞数")
 async def get_likes(article_id: int):
     from app.utils.cache import get_redis
+
     redis = get_redis()
     count = await redis.get(f"pl:likes:count:{article_id}") or 0
     return {"article_id": article_id, "count": int(count)}
@@ -97,7 +105,10 @@ async def get_likes(article_id: int):
 
 # ── 评论 ──────────────────────────────────────────────────
 
-@router.get("/articles/{article_id}/comments", response_model=list[CommentOut], summary="获取文章评论")
+
+@router.get(
+    "/articles/{article_id}/comments", response_model=list[CommentOut], summary="获取文章评论"
+)
 def list_comments(article_id: int, db: Session = Depends(get_db)):
     top = (
         db.query(Comment)
@@ -108,7 +119,12 @@ def list_comments(article_id: int, db: Session = Depends(get_db)):
     return top
 
 
-@router.post("/articles/{article_id}/comments", response_model=CommentOut, status_code=201, summary="发表评论")
+@router.post(
+    "/articles/{article_id}/comments",
+    response_model=CommentOut,
+    status_code=201,
+    summary="发表评论",
+)
 def create_comment(
     article_id: int,
     body: CommentCreate,
