@@ -216,7 +216,7 @@
               <div class="skill-bar">
                 <div
                   class="skill-fill"
-                  :style="{ width: sk.level + '%' }"
+                  :style="{ width: skillsAnimated ? sk.level + '%' : '0%' }"
                   :data-level="sk.level"
                 ></div>
               </div>
@@ -328,12 +328,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { profileApi, articlesApi } from '@/api/endpoints.js'
 import dayjs from 'dayjs'
 
 const profile        = ref(null)
 const latestArticles = ref([])
+const skillsAnimated = ref(false)
 
 const resume      = computed(() => { try { return JSON.parse(profile.value?.resume_data || '{}') } catch { return {} } })
 const experience  = computed(() => resume.value.experience  || [])
@@ -343,12 +344,44 @@ const education   = computed(() => resume.value.education   || [])
 const parseTags = (t) => (t || '').split(',').map(s => s.trim()).filter(Boolean)
 const fmtDate   = (d) => d ? dayjs(d).format('YYYY-MM-DD') : ''
 
+function initSkillsObserver() {
+  const section = document.querySelector('.section--skills')
+  if (!section) return
+  const io = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting) {
+      skillsAnimated.value = true
+      io.disconnect()
+    }
+  }, { threshold: 0.15 })
+  io.observe(section)
+}
+
+function initScrollReveal() {
+  const targets = document.querySelectorAll('.timeline-item, .edu-card, .article-preview-card')
+  if (!targets.length) return
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('sr-visible')
+        io.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.1 })
+  targets.forEach(el => {
+    el.classList.add('sr-hidden')
+    io.observe(el)
+  })
+}
+
 onMounted(async () => {
   try { profile.value = await profileApi.get() } catch {}
   try {
     const res = await articlesApi.list({ page: 1, page_size: 3 })
     latestArticles.value = res.items ?? []
   } catch {}
+  await nextTick()
+  initSkillsObserver()
+  initScrollReveal()
 })
 </script>
 
@@ -895,8 +928,20 @@ onMounted(async () => {
   background: linear-gradient(90deg, #5b8dee, #a78bfa, #f472b6);
   background-size: 200% 100%;
   border-radius: 4px;
-  animation: skillFill .9s cubic-bezier(.4,0,.2,1) both, shimmer 3s linear infinite;
+  transition: width 0.9s cubic-bezier(.4,0,.2,1);
+  animation: shimmer 3s linear infinite;
   box-shadow: 0 0 8px rgba(91,141,238,.4);
+}
+
+/* ══ Scroll reveal ══════════════════════════════════════ */
+.sr-hidden {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.sr-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ══ 教育背景 ══════════════════════════════════════════════ */
