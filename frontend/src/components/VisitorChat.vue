@@ -1,16 +1,34 @@
 <template>
   <!-- 浮动触发按钮 -->
   <div class="visitor-chat-root">
+
+    <!-- 引导气泡：首次访问时显示，点击任意处或 6s 后消失 -->
+    <transition name="guide-fade">
+      <div v-if="showGuide && !isOpen" class="guide-bubble" @click.stop="dismissGuide">
+        <div class="guide-arrow">↓</div>
+        <div class="guide-text">
+          <span class="guide-emoji">🤖</span>
+          <span>点击和 <strong>AI 助手</strong> 聊聊</span>
+          <br>
+          <small>可以问我关于技能、项目、文章的任何问题！</small>
+        </div>
+        <button class="guide-dismiss" @click.stop="dismissGuide" aria-label="关闭引导">✕</button>
+      </div>
+    </transition>
+
     <transition name="chat-bounce">
       <button
         v-if="!isOpen"
         class="chat-fab"
-        :class="{ pulse: !hasOpened }"
+        :class="{ pulse: showGuide }"
         @click="openChat"
         aria-label="和 AI 聊聊"
       >
         <span class="fab-icon">🤖</span>
-        <span class="fab-badge" v-if="!hasOpened">👋</span>
+        <!-- 未打开时显示文字标签 -->
+        <transition name="label-fade">
+          <span v-if="showGuide" class="fab-label">AI 助手</span>
+        </transition>
       </button>
     </transition>
 
@@ -101,16 +119,44 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted } from 'vue'
 
 const isOpen = ref(false)
 const hasOpened = ref(false)
+const showGuide = ref(false)
 const isStreaming = ref(false)
 const inputText = ref('')
 const streamingText = ref('')
 const messages = ref([])
 const messagesEl = ref(null)
 const inputEl = ref(null)
+
+let guideTimer = null
+
+// 引导气泡：首次访问时展示，6s 后自动消失，关闭后写 localStorage
+onMounted(() => {
+  const dismissed = localStorage.getItem('ai-guide-dismissed')
+  if (!dismissed) {
+    // 延迟 2s 再弹出，让用户先看页面
+    guideTimer = setTimeout(() => {
+      showGuide.value = true
+      // 6s 后自动消失
+      guideTimer = setTimeout(() => {
+        showGuide.value = false
+      }, 6000)
+    }, 2000)
+  }
+})
+
+onUnmounted(() => {
+  if (guideTimer) clearTimeout(guideTimer)
+})
+
+function dismissGuide() {
+  showGuide.value = false
+  localStorage.setItem('ai-guide-dismissed', '1')
+  if (guideTimer) clearTimeout(guideTimer)
+}
 
 const quickQuestions = [
   '你擅长哪些技术？',
@@ -119,6 +165,7 @@ const quickQuestions = [
 ]
 
 function openChat() {
+  dismissGuide()
   isOpen.value = true
   hasOpened.value = true
   nextTick(() => inputEl.value?.focus())
@@ -251,25 +298,28 @@ async function sendMessage() {
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: transform .2s ease, box-shadow .2s ease;
+  transition: transform .2s ease, box-shadow .2s ease, width .3s ease, border-radius .3s ease;
 }
 .chat-fab:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 28px rgba(91,141,238,.6);
 }
-.fab-icon { font-size: 24px; line-height: 1; }
-.fab-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  font-size: 16px;
-  animation: wave 1.5s ease-in-out infinite;
+.fab-icon { font-size: 24px; line-height: 1; flex-shrink: 0; }
+
+/* 带文字标签时拉宽为胶囊形 */
+.chat-fab:has(.fab-label) {
+  width: auto;
+  border-radius: 28px;
+  padding: 0 18px 0 12px;
+  gap: 8px;
 }
-@keyframes wave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(20deg); }
-  75% { transform: rotate(-10deg); }
+.fab-label {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
 }
+
 .pulse::before {
   content: '';
   position: absolute;
@@ -282,6 +332,71 @@ async function sendMessage() {
   0% { transform: scale(1); opacity: .8; }
   100% { transform: scale(1.6); opacity: 0; }
 }
+
+/* ── 引导气泡 ── */
+.guide-bubble {
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 210px;
+  background: var(--c-bg-card, #fff);
+  border: 1px solid var(--c-border, rgba(0,0,0,.1));
+  border-radius: 14px;
+  padding: 12px 28px 12px 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.14);
+  cursor: pointer;
+}
+.guide-arrow {
+  position: absolute;
+  bottom: -20px;
+  right: 18px;
+  font-size: 18px;
+  color: var(--c-primary, #5b8dee);
+  animation: bounceArrow 1s ease-in-out infinite;
+}
+@keyframes bounceArrow {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(5px); }
+}
+.guide-text {
+  font-size: 13.5px;
+  color: var(--c-text, #1a2150);
+  line-height: 1.6;
+}
+.guide-emoji { margin-right: 4px; }
+.guide-text small {
+  font-size: 12px;
+  color: var(--c-text-muted, #888);
+  display: block;
+  margin-top: 3px;
+}
+.guide-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--c-text-muted, #aaa);
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+}
+.guide-dismiss:hover { color: var(--c-text, #333); }
+
+/* 引导气泡进出动画 */
+.guide-fade-enter-active { animation: guidePop .35s cubic-bezier(.34,1.56,.64,1); }
+.guide-fade-leave-active { animation: guidePop .2s ease reverse; }
+@keyframes guidePop {
+  from { transform: scale(.85) translateY(8px); opacity: 0; }
+  to   { transform: scale(1)   translateY(0);   opacity: 1; }
+}
+
+/* FAB 标签淡入 */
+.label-fade-enter-active { transition: opacity .3s ease, transform .3s ease; }
+.label-fade-leave-active { transition: opacity .2s ease; }
+.label-fade-enter-from   { opacity: 0; transform: translateX(-6px); }
+.label-fade-leave-to     { opacity: 0; }
 
 /* ── 聊天面板 ── */
 .chat-panel {
