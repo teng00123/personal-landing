@@ -1,6 +1,6 @@
 <template>
   <!-- 阅读进度条 -->
-  <div class="read-progress" :style="{ width: readProgress + '%' }"></div>
+  <div class="read-progress" :class="{ done: progressDone }" :style="{ width: readProgress + '%' }"></div>
 
   <div class="section" style="padding-top:48px">
     <div class="container art-layout">
@@ -74,9 +74,10 @@ const route      = useRoute()
 const article    = ref(null)
 const loading    = ref(true)
 const articleRef = ref(null)
-const readProgress = ref(0)
-const activeId   = ref('')
-const toc        = ref([])
+const readProgress  = ref(0)
+const progressDone  = ref(false)
+const activeId      = ref('')
+const toc           = ref([])
 
 // ── Marked 配置 ──────────────────────────────────────────
 marked.use(markedHighlight({
@@ -113,15 +114,24 @@ const fmtDate   = (d) => d ? dayjs(d).format('YYYY年MM月DD日') : ''
 function onScroll() {
   const el = articleRef.value
   if (!el) return
-  const scrollTop  = window.scrollY
-  const docHeight  = document.documentElement.scrollHeight - window.innerHeight
-  readProgress.value = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0
+
+  // 用文章元素本身的范围计算进度，而非整页高度
+  const artTop    = el.getBoundingClientRect().top + window.scrollY
+  const artHeight = el.offsetHeight
+  const scrolled  = window.scrollY + window.innerHeight - artTop
+  const pct = artHeight > 0 ? Math.min(100, Math.max(0, (scrolled / artHeight) * 100)) : 0
+  readProgress.value = pct
+
+  // 读完：颜色变绿，2s 后淡出
+  if (pct >= 100 && !progressDone.value) {
+    progressDone.value = true
+  }
 
   // 高亮当前目录项
   const headings = el.querySelectorAll('h1,h2,h3,h4')
   let current = ''
   headings.forEach((h) => {
-    if (h.getBoundingClientRect().top <= 100) current = h.id
+    if (h.getBoundingClientRect().top <= 120) current = h.id
   })
   activeId.value = current
 }
@@ -169,6 +179,7 @@ onMounted(async () => {
     await nextTick()
     buildToc()
     addCopyButtons()
+    onScroll() // 初始化高亮 + 进度
   } catch {
     article.value = null
   } finally {
@@ -185,7 +196,17 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
 .read-progress {
   position: fixed; top: 0; left: 0; height: 3px; z-index: 9999;
   background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-  transition: width .1s linear;
+  transition: width .1s linear, background .4s ease, opacity .6s ease;
+  pointer-events: none;
+}
+.read-progress.done {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  animation: progress-done 2s ease forwards;
+}
+@keyframes progress-done {
+  0%   { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 /* 布局 */
