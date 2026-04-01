@@ -17,6 +17,7 @@ from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -37,8 +38,8 @@ class AIProvider:
     def __init__(self):
         import os
 
-        self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.openai_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+        self.openai_key = os.getenv("OPENAI_API_KEY")
+        self.openai_base = os.getenv("OPENAI_API_BASE", "")
         self.model = os.getenv("AI_MODEL", "gpt-3.5-turbo")
         self.ollama_url = os.getenv("OLLAMA_URL", "")
 
@@ -379,3 +380,97 @@ async def recommend_articles(
     }
     await cache.set(cache_key, json.dumps(result, ensure_ascii=False), ttl=300)
     return result
+
+
+# ─────────────────────────────────────────────────────────
+# 8.4 通用聊天助手
+# ─────────────────────────────────────────────────────────
+
+
+class ChatRequest(BaseModel):
+    question: str
+
+
+@router.post("/chat/ask", summary="通用聊天助手（流式响应）")
+async def chat_ask(req: ChatRequest, cache: CacheManager = Depends(get_cache)):
+    """通用聊天助手，支持流式响应"""
+    cache_key = f"ai:chat:{hashlib.md5(req.question.encode()).hexdigest()}"
+    if cached := await cache.get(cache_key):
+        # 对于缓存的内容，也返回流式格式
+        return StreamingResponse(
+            _stream_cached_response(cached),
+            media_type="text/plain; charset=utf-8"
+        )
+
+    # 构建系统提示词
+    system = (
+        "你是一位专业的技术助手，专门回答关于这个个人主页的问题。"
+        "主页包含技术文章、项目经验和技能介绍。"
+        "请用友好、专业的语气回答用户的问题，如果问题超出你的知识范围，请礼貌地说明。"
+        "回答要简洁明了，使用Markdown格式增强可读性。"
+    )
+
+    try:
+        # 使用流式响应
+        return StreamingResponse(
+            _stream_ai_response(system, req.question),
+            media_type="text/plain; charset=utf-8"
+        )
+    except Exception as e:
+        logger.error("AI chat failed: %s", e)
+        return StreamingResponse(
+            _stream_error_response("AI 服务暂时不可用，请稍后重试"),
+            media_type="text/plain; charset=utf-8"
+        )
+
+
+async def _stream_ai_response(system: str, question: str):
+    """流式生成AI响应"""
+    try:
+        # 使用AI提供者生成响应
+        response = await _ai.chat(system, question, max_tokens=800)
+
+        # 模拟流式输出（实际生产中应该使用真正的流式API）
+        words = response.split()
+        buffer = ""
+
+        for word in words:
+            buffer += word + " "
+            if len(buffer) > 50:  # 每50个字符左右发送一次
+                yield f"data: {buffer}\n\n"
+                buffer = ""
+                # 模拟思考延迟
+                import asyncio
+                await asyncio.sleep(0.05)
+
+        if buffer:
+            yield f"data: {buffer}\n\n"
+
+        yield "data: [DONE]\n\n"
+
+    except Exception as e:
+        yield f"data: [ERROR]{str(e)}\n\n"
+
+
+async def _stream_cached_response(cached_content: str):
+    """流式输出缓存的内容"""
+    words = cached_content.split()
+    buffer = ""
+
+    for word in words:
+        buffer += word + " "
+        if len(buffer) > 50:
+            yield f"data: {buffer}\n\n"
+            buffer = ""
+            import asyncio
+            await asyncio.sleep(0.03)  # 缓存内容输出更快
+
+    if buffer:
+        yield f"data: {buffer}\n\n"
+
+    yield "data: [DONE]\n\n"
+
+
+async def _stream_error_response(error_msg: str):
+    """流式输出错误信息"""
+    yield f"data: [ERROR]{error_msg}\n\n"
