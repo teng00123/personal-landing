@@ -36,12 +36,11 @@ class AIProvider:
     """可替换的 AI 后端封装"""
 
     def __init__(self):
-        import os
-
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.openai_base = os.getenv("OPENAI_API_BASE", "")
-        self.model = os.getenv("AI_MODEL", "gpt-3.5-turbo")
-        self.ollama_url = os.getenv("OLLAMA_URL", "")
+        from app.core.config import settings
+        self.openai_key = settings.OPENAI_API_KEY
+        self.openai_base = settings.OPENAI_API_BASE
+        self.model = settings.AI_MODEL
+        self.ollama_url = settings.OLLAMA_URL
 
     async def chat(self, system: str, user: str, max_tokens: int = 512) -> str:
         """调用 AI 模型，返回文本；无配置时走 Mock"""

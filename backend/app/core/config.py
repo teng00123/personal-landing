@@ -12,6 +12,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24h
     ALLOWED_ORIGINS: str = "http://localhost:5173"
 
+    # AI Configuration
+    OPENAI_API_KEY: str = ""
+    OPENAI_API_BASE: str = "https://api.openai.com/v1"
+    AI_MODEL: str = "gpt-3.5-turbo"
+    OLLAMA_URL: str = ""
+
     @property
     def CORS_ORIGINS(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
