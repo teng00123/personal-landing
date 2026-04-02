@@ -1,15 +1,15 @@
 """
 数据脱敏与安全工具 — Iteration 6
 """
+
 from __future__ import annotations
 
 import hashlib
-import html
 import re
 from typing import Any
 
-
 # ── 脱敏函数 ─────────────────────────────────────────────
+
 
 def mask_email(email: str) -> str:
     """user@example.com → us**@example.com"""
@@ -57,17 +57,42 @@ def mask_field(value: Any, field_type: str = "default") -> str:
 
 # 允许的 HTML 标签（富文本展示用）
 ALLOWED_TAGS = {
-    "p", "br", "strong", "em", "u", "s", "del",
-    "h1", "h2", "h3", "h4", "h5", "h6",
-    "ul", "ol", "li", "blockquote", "pre", "code",
-    "a", "img", "table", "thead", "tbody", "tr", "th", "td",
-    "hr", "figure", "figcaption",
+    "p",
+    "br",
+    "strong",
+    "em",
+    "u",
+    "s",
+    "del",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "blockquote",
+    "pre",
+    "code",
+    "a",
+    "img",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "hr",
+    "figure",
+    "figcaption",
 }
 
 ALLOWED_ATTRS = {
-    "a":   ["href", "title", "target", "rel"],
+    "a": ["href", "title", "target", "rel"],
     "img": ["src", "alt", "title", "width", "height"],
-    "*":   ["class"],
+    "*": ["class"],
 }
 
 _DANGEROUS_ATTRS = re.compile(
@@ -99,6 +124,7 @@ def escape_for_sql_like(s: str) -> str:
 
 
 # ── 密码强度验证 ──────────────────────────────────────────
+
 
 def check_password_strength(password: str) -> tuple[bool, str]:
     """

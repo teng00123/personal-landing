@@ -187,6 +187,9 @@
       </div>
     </footer>
 
+    <!-- 访客 AI 对话浮窗 -->
+    <VisitorChat />
+
   </div>
 </template>
 

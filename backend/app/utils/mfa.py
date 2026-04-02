@@ -2,11 +2,11 @@
 MFA 工具 — Iteration 6
 支持 TOTP (RFC 6238) 兼容 Google Authenticator / Authy
 """
+
 from __future__ import annotations
 
 import base64
 import io
-import os
 
 import pyotp
 import qrcode

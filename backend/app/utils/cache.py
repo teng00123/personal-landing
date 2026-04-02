@@ -5,10 +5,12 @@ Redis 缓存管理器 — Iteration 4
   - 手动 get/set/delete/clear_pattern
   - 键前缀命名空间
 """
+
 import functools
 import json
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any, Optional
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -35,6 +37,7 @@ def get_redis() -> Redis:
 
 
 # ── CacheManager ──────────────────────────────────────────
+
 
 class CacheManager:
     PREFIX = "pl:"  # personal-landing 命名空间
@@ -95,11 +98,13 @@ class CacheManager:
 
 # ── 便捷依赖注入 ──────────────────────────────────────────
 
+
 async def get_cache() -> CacheManager:
     return CacheManager(get_redis())
 
 
 # ── 缓存装饰器 ────────────────────────────────────────────
+
 
 def cache(ttl: int = 300, key_prefix: str = ""):
     """
@@ -109,6 +114,7 @@ def cache(ttl: int = 300, key_prefix: str = ""):
         async def get_articles(page: int) -> list:
             ...
     """
+
     def decorator(func: Callable):
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
@@ -129,5 +135,7 @@ def cache(ttl: int = 300, key_prefix: str = ""):
             await cm.set(cache_key, result, ttl)
             logger.debug("cache set: %s (ttl=%ds)", cache_key, ttl)
             return result
+
         return wrapper
+
     return decorator

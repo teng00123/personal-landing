@@ -7,11 +7,12 @@ API 限流中间件 — Iteration 6
   - IP 黑名单/白名单
   - 限流触发后返回标准 429 + Retry-After
 """
+
 from __future__ import annotations
 
 import logging
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -21,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 # 路由级别限流规则: path_prefix → (max_requests, window_seconds)
 ROUTE_LIMITS: dict[str, tuple[int, int]] = {
-    "/api/v1/auth/login":    (10,  60),   # 登录：60s 内最多 10 次
-    "/api/v1/auth/mfa":      (20,  60),   # MFA：60s 内最多 20 次
-    "/api/v1/search":        (60,  60),   # 搜索：60s 内最多 60 次
-    "/api/v1/social":        (100, 60),   # 社交：60s 内最多 100 次
-    "/api/v1/":              (300, 60),   # 全局 API：60s 内最多 300 次
+    "/api/v1/auth/login": (10, 60),  # 登录：60s 内最多 10 次
+    "/api/v1/auth/mfa": (20, 60),  # MFA：60s 内最多 20 次
+    "/api/v1/search": (60, 60),  # 搜索：60s 内最多 60 次
+    "/api/v1/social": (100, 60),  # 社交：60s 内最多 100 次
+    "/api/v1/": (300, 60),  # 全局 API：60s 内最多 300 次
 }
 
 # IP 永久白名单（内网）
@@ -94,6 +95,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def _is_blacklisted(self, ip: str) -> bool:
         try:
             from app.utils.cache import get_redis
+
             r = get_redis()
             return bool(await r.sismember("pl:ip:blacklist", ip))
         except Exception:
@@ -105,6 +107,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         """滑动窗口计数，返回 (allowed, remaining, retry_after)"""
         try:
             from app.utils.cache import get_redis
+
             r = get_redis()
             key = f"pl:rl:{ip}:{path[:40]}"
             now = int(time.time())
@@ -133,6 +136,7 @@ class IPBlocklistManager:
     @staticmethod
     async def block(ip: str, reason: str = "manual"):
         from app.utils.cache import get_redis
+
         r = get_redis()
         await r.sadd("pl:ip:blacklist", ip)
         await r.hset("pl:ip:blacklist:reasons", ip, reason)
@@ -141,6 +145,7 @@ class IPBlocklistManager:
     @staticmethod
     async def unblock(ip: str):
         from app.utils.cache import get_redis
+
         r = get_redis()
         await r.srem("pl:ip:blacklist", ip)
         await r.hdel("pl:ip:blacklist:reasons", ip)
@@ -148,6 +153,7 @@ class IPBlocklistManager:
     @staticmethod
     async def list_blocked() -> list[dict]:
         from app.utils.cache import get_redis
+
         r = get_redis()
         ips = await r.smembers("pl:ip:blacklist")
         reasons = await r.hgetall("pl:ip:blacklist:reasons")
@@ -157,6 +163,7 @@ class IPBlocklistManager:
     async def auto_block_brute_force(ip: str, threshold: int = 20, window: int = 300):
         """登录失败超过阈值时自动封禁"""
         from app.utils.cache import get_redis
+
         r = get_redis()
         key = f"pl:login:fail:{ip}"
         count = await r.incr(key)

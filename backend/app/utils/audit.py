@@ -2,6 +2,7 @@
 安全审计日志 — Iteration 6
 记录所有敏感操作到数据库
 """
+
 from __future__ import annotations
 
 import logging
@@ -19,18 +20,19 @@ logger = logging.getLogger(__name__)
 
 class AuditLog(Base):
     """安全审计日志表"""
+
     __tablename__ = "audit_logs"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    user_id    = Column(Integer, nullable=True, index=True)   # None = 匿名
-    username   = Column(String(64), nullable=True)
-    action     = Column(String(64), nullable=False, index=True)  # login/logout/create/update/delete
-    resource   = Column(String(64), nullable=True)              # article/project/user
-    resource_id= Column(Integer, nullable=True)
-    detail     = Column(Text, nullable=True)                    # JSON 额外信息
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=True, index=True)  # None = 匿名
+    username = Column(String(64), nullable=True)
+    action = Column(String(64), nullable=False, index=True)  # login/logout/create/update/delete
+    resource = Column(String(64), nullable=True)  # article/project/user
+    resource_id = Column(Integer, nullable=True)
+    detail = Column(Text, nullable=True)  # JSON 额外信息
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(256), nullable=True)
-    status     = Column(String(16), default="success")          # success/failed/blocked
+    status = Column(String(16), default="success")  # success/failed/blocked
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), index=True)
 
 
@@ -86,8 +88,10 @@ async def record_audit_async(
 ):
     """异步写入审计日志（无 DB session，用 Redis 队列中转）"""
     import json
+
     try:
         from app.utils.cache import get_redis
+
         r = get_redis()
         entry = {
             "user_id": user_id,

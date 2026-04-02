@@ -15,7 +15,6 @@ from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from slugify import slugify
 from sqlalchemy import desc
@@ -41,8 +40,8 @@ ALLOWED_IMG = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMG_SIZE = 5 * 1024 * 1024  # 5 MB
 
 # 缓存 TTL
-CACHE_TTL_LIST   = 120   # 列表缓存 2 分钟
-CACHE_TTL_DETAIL = 300   # 详情缓存 5 分钟
+CACHE_TTL_LIST = 120  # 列表缓存 2 分钟
+CACHE_TTL_DETAIL = 300  # 详情缓存 5 分钟
 
 
 # ── helpers ────────────────────────────────────────────────
@@ -241,16 +240,18 @@ async def upload_markdown(
 
 # ── CSDN 导入 ──────────────────────────────────────────────
 
+
 class CsdnImportBody(BaseModel):
     url: str
+
 
 def _extract_csdn(html: str, url: str) -> dict:
     """从 CSDN 文章 HTML 中提取标题、正文（转 Markdown）、封面、摘要、标签。"""
     # 标题
     title_m = re.search(r'<h1[^>]*class="[^"]*title-article[^"]*"[^>]*>(.*?)</h1>', html, re.S)
     if not title_m:
-        title_m = re.search(r'<title>(.*?)(?:\s*[-_|].*)?</title>', html, re.S)
-    title = re.sub(r'<[^>]+>', '', title_m.group(1)).strip() if title_m else "CSDN 文章"
+        title_m = re.search(r"<title>(.*?)(?:\s*[-_|].*)?</title>", html, re.S)
+    title = re.sub(r"<[^>]+>", "", title_m.group(1)).strip() if title_m else "CSDN 文章"
 
     # 封面（og:image）
     cover_m = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"', html)
@@ -263,7 +264,8 @@ def _extract_csdn(html: str, url: str) -> dict:
     # 正文
     body_m = re.search(
         r'<div[^>]+id="article_content"[^>]*>(.*?)</div>\s*(?=<div[^>]+class="[^"]*article-copyright)',
-        html, re.S
+        html,
+        re.S,
     )
     if not body_m:
         body_m = re.search(r'<div[^>]+id="article_content"[^>]*>(.*?)</div>', html, re.S)
@@ -272,24 +274,42 @@ def _extract_csdn(html: str, url: str) -> dict:
 
     # 简单 HTML → Markdown 转换
     md = content_html
-    md = re.sub(r'<h([1-6])[^>]*>(.*?)</h\1>', lambda m: '#' * int(m.group(1)) + ' ' + re.sub(r'<[^>]+>', '', m.group(2)).strip(), md, flags=re.S)
-    md = re.sub(r'<pre[^>]*><code[^>]*class="[^"]*language-([^"\s]+)[^"]*"[^>]*>(.*?)</code></pre>',
-                lambda m: f'\n```{m.group(1)}\n{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(2)).strip()}\n```\n', md, flags=re.S)
-    md = re.sub(r'<pre[^>]*><code[^>]*>(.*?)</code></pre>',
-                lambda m: f'\n```\n{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(1)).strip()}\n```\n', md, flags=re.S)
-    md = re.sub(r'<code[^>]*>(.*?)</code>', lambda m: f'`{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(1))}`', md, flags=re.S)
-    md = re.sub(r'<strong[^>]*>(.*?)</strong>', r'**\1**', md, flags=re.S)
-    md = re.sub(r'<em[^>]*>(.*?)</em>', r'*\1*', md, flags=re.S)
-    md = re.sub(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', r'[\2](\1)', md, flags=re.S)
-    md = re.sub(r'<img[^>]+src="([^"]+)"[^>]*/?>', r'![](\1)', md, flags=re.S)
-    md = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1', md, flags=re.S)
-    md = re.sub(r'<[^>]+>', '', md)
-    md = re.sub(r'\n{3,}', '\n\n', md).strip()
+    md = re.sub(
+        r"<h([1-6])[^>]*>(.*?)</h\1>",
+        lambda m: "#" * int(m.group(1)) + " " + re.sub(r"<[^>]+>", "", m.group(2)).strip(),
+        md,
+        flags=re.S,
+    )
+    md = re.sub(
+        r'<pre[^>]*><code[^>]*class="[^"]*language-([^"\s]+)[^"]*"[^>]*>(.*?)</code></pre>',
+        lambda m: f'\n```{m.group(1)}\n{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(2)).strip()}\n```\n',
+        md,
+        flags=re.S,
+    )
+    md = re.sub(
+        r"<pre[^>]*><code[^>]*>(.*?)</code></pre>",
+        lambda m: f'\n```\n{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(1)).strip()}\n```\n',
+        md,
+        flags=re.S,
+    )
+    md = re.sub(
+        r"<code[^>]*>(.*?)</code>",
+        lambda m: f'`{re.sub(chr(60)+"[^>]+"+chr(62),"",m.group(1))}`',
+        md,
+        flags=re.S,
+    )
+    md = re.sub(r"<strong[^>]*>(.*?)</strong>", r"**\1**", md, flags=re.S)
+    md = re.sub(r"<em[^>]*>(.*?)</em>", r"*\1*", md, flags=re.S)
+    md = re.sub(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', r"[\2](\1)", md, flags=re.S)
+    md = re.sub(r'<img[^>]+src="([^"]+)"[^>]*/?>', r"![](\1)", md, flags=re.S)
+    md = re.sub(r"<li[^>]*>(.*?)</li>", r"- \1", md, flags=re.S)
+    md = re.sub(r"<[^>]+>", "", md)
+    md = re.sub(r"\n{3,}", "\n\n", md).strip()
 
     # 追加原文链接
-    md += f'\n\n---\n> 原文链接：[{url}]({url})\n'
+    md += f"\n\n---\n> 原文链接：[{url}]({url})\n"
 
-    summary = md[:200].replace('\n', ' ').strip()
+    summary = md[:200].replace("\n", " ").strip()
 
     return {"title": title, "content": md, "cover": cover, "tags": tags, "summary": summary}
 
@@ -322,9 +342,9 @@ async def import_csdn(
             raise HTTPException(502, f"CSDN 返回 {resp.status_code}，请检查链接是否有效")
         html = resp.text
     except httpx.TimeoutException:
-        raise HTTPException(504, "请求 CSDN 超时，请稍后重试")
+        raise HTTPException(504, "请求 CSDN 超时，请稍后重试") from None
     except httpx.RequestError as e:
-        raise HTTPException(502, f"网络错误：{e}")
+        raise HTTPException(502, f"网络错误：{e}") from e
 
     meta = _extract_csdn(html, url)
     if not meta["content"] or len(meta["content"]) < 50:
@@ -471,4 +491,3 @@ async def upload_cover(
 
     await cache.delete(_article_slug_key(a.slug))
     return a
-

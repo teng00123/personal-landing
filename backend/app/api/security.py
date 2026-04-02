@@ -7,6 +7,7 @@
   - 密码强度验证
   - 登出（Token 吊销）
 """
+
 from __future__ import annotations
 
 import logging
@@ -43,14 +44,15 @@ ALGORITHM = "HS256"
 
 # ── Schemas ───────────────────────────────────────────────
 
+
 class MFASetupResponse(BaseModel):
-    qr_code: str        # base64 data URI
-    secret: str         # 备用手动输入密钥
-    uri: str            # otpauth:// URI
+    qr_code: str  # base64 data URI
+    secret: str  # 备用手动输入密钥
+    uri: str  # otpauth:// URI
 
 
 class MFAVerifyRequest(BaseModel):
-    code: str           # 6位 TOTP 码
+    code: str  # 6位 TOTP 码
 
 
 class RefreshRequest(BaseModel):
@@ -69,6 +71,7 @@ class PasswordChangeRequest(BaseModel):
 
 
 # ── 辅助函数 ──────────────────────────────────────────────
+
 
 def _create_refresh_token(user_id: int) -> str:
     expire = datetime.now(UTC) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -93,8 +96,10 @@ async def _is_token_revoked(token: str) -> bool:
     """检查 Token 是否已被吊销（Redis 黑名单）"""
     try:
         from app.utils.cache import get_redis
+
         r = get_redis()
         from app.utils.security_tools import hash_sensitive
+
         return bool(await r.sismember("pl:token:revoked", hash_sensitive(token)))
     except Exception:
         return False
@@ -104,8 +109,10 @@ async def _revoke_token(token: str):
     """将 Token 加入吊销黑名单"""
     try:
         from app.utils.cache import get_redis
+
         r = get_redis()
         from app.utils.security_tools import hash_sensitive
+
         key = hash_sensitive(token)
         await r.sadd("pl:token:revoked", key)
         await r.expire("pl:token:revoked", 86400 * REFRESH_TOKEN_EXPIRE_DAYS)
@@ -114,6 +121,7 @@ async def _revoke_token(token: str):
 
 
 # ── MFA 绑定 ──────────────────────────────────────────────
+
 
 @router.post("/mfa/setup", response_model=MFASetupResponse, summary="生成 MFA 绑定二维码")
 async def mfa_setup(
@@ -124,12 +132,14 @@ async def mfa_setup(
     secret = generate_totp_secret()
     # 临时存储（绑定确认后才写入 user 表）
     from app.utils.cache import get_redis
+
     r = get_redis()
     await r.setex(f"pl:mfa:pending:{user.id}", 300, secret)  # 5 分钟有效
 
     from app.utils.mfa import get_totp_uri
+
     uri = get_totp_uri(secret, user.username)
-    qr  = get_totp_qr_base64(secret, user.username)
+    qr = get_totp_qr_base64(secret, user.username)
     return MFASetupResponse(qr_code=qr, secret=secret, uri=uri)
 
 
@@ -140,6 +150,7 @@ async def mfa_confirm(
     db: Session = Depends(get_db),
 ):
     from app.utils.cache import get_redis
+
     r = get_redis()
     pending_secret = await r.get(f"pl:mfa:pending:{user.id}")
     if not pending_secret:
@@ -174,6 +185,7 @@ async def mfa_disable(
 ):
     # 验证当前 TOTP 码才允许关闭
     from app.utils.cache import get_redis
+
     r = get_redis()
     secret = await r.get(f"pl:mfa:secret:{user.id}") or getattr(user, "mfa_secret", None)
     if not secret or not verify_totp(secret, body.code):
@@ -194,6 +206,7 @@ async def mfa_disable(
 
 # ── Token 刷新 ────────────────────────────────────────────
 
+
 @router.post("/refresh", response_model=TokenPair, summary="刷新 Access Token")
 async def refresh_token(
     body: RefreshRequest,
@@ -213,12 +226,13 @@ async def refresh_token(
     # 吊销旧 refresh token（单次使用）
     await _revoke_token(body.refresh_token)
 
-    access  = create_access_token(user.id)
+    access = create_access_token(user.id)
     refresh = _create_refresh_token(user.id)
     return TokenPair(access_token=access, refresh_token=refresh)
 
 
 # ── 登出 ──────────────────────────────────────────────────
+
 
 @router.post("/logout", summary="登出（吊销 Token）")
 async def logout(
@@ -235,6 +249,7 @@ async def logout(
 
 # ── 密码修改 ──────────────────────────────────────────────
 
+
 @router.post("/change-password", summary="修改密码")
 async def change_password(
     body: PasswordChangeRequest,
@@ -244,6 +259,7 @@ async def change_password(
 ):
     # 验证当前密码
     from passlib.context import CryptContext
+
     pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
     if not pwd_ctx.verify(body.current_password, user.hashed_password):
         raise HTTPException(400, "当前密码错误")
@@ -260,6 +276,7 @@ async def change_password(
 
 
 # ── IP 黑名单管理（管理员）────────────────────────────────
+
 
 @router.get("/blocklist", summary="查看 IP 黑名单")
 async def list_blocklist(user: User = Depends(get_current_user)):
@@ -278,7 +295,9 @@ async def block_ip(
     if not user.is_admin:
         raise HTTPException(403, "需要管理员权限")
     await IPBlocklistManager.block(ip, reason)
-    record_audit(db, "ip_block", detail=f"ip={ip} reason={reason}", user_id=user.id, username=user.username)
+    record_audit(
+        db, "ip_block", detail=f"ip={ip} reason={reason}", user_id=user.id, username=user.username
+    )
     return {"message": f"IP {ip} 已封禁"}
 
 
@@ -297,6 +316,7 @@ async def unblock_ip(
 
 # ── 安全审计日志查询（管理员）────────────────────────────
 
+
 @router.get("/audit-logs", summary="查看安全审计日志")
 def list_audit_logs(
     page: int = 1,
@@ -308,27 +328,28 @@ def list_audit_logs(
     if not user.is_admin:
         raise HTTPException(403, "需要管理员权限")
     from app.utils.audit import AuditLog
+
     q = db.query(AuditLog).order_by(AuditLog.created_at.desc())
     if action:
         q = q.filter(AuditLog.action == action)
     total = q.count()
-    logs  = q.offset((page - 1) * size).limit(size).all()
+    logs = q.offset((page - 1) * size).limit(size).all()
     return {
         "total": total,
         "page": page,
         "size": size,
         "items": [
             {
-                "id":          log.id,
-                "user_id":     log.user_id,
-                "username":    log.username,
-                "action":      log.action,
-                "resource":    log.resource,
+                "id": log.id,
+                "user_id": log.user_id,
+                "username": log.username,
+                "action": log.action,
+                "resource": log.resource,
                 "resource_id": log.resource_id,
-                "detail":      log.detail,
-                "ip_address":  log.ip_address,
-                "status":      log.status,
-                "created_at":  log.created_at.isoformat() if log.created_at else None,
+                "detail": log.detail,
+                "ip_address": log.ip_address,
+                "status": log.status,
+                "created_at": log.created_at.isoformat() if log.created_at else None,
             }
             for log in logs
         ],

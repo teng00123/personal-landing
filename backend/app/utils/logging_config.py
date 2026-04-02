@@ -2,11 +2,12 @@
 结构化日志配置 — Iteration 4
 输出 JSON 格式日志，便于 ELK/Loki 采集
 """
+
 import json
 import logging
 import sys
 import traceback
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -14,21 +15,21 @@ class JSONFormatter(logging.Formatter):
     """将日志输出为单行 JSON，方便 Logstash/Filebeat 采集"""
 
     LEVEL_MAP = {
-        logging.DEBUG:    "debug",
-        logging.INFO:     "info",
-        logging.WARNING:  "warn",
-        logging.ERROR:    "error",
+        logging.DEBUG: "debug",
+        logging.INFO: "info",
+        logging.WARNING: "warn",
+        logging.ERROR: "error",
         logging.CRITICAL: "critical",
     }
 
     def format(self, record: logging.LogRecord) -> str:
         log: dict[str, Any] = {
-            "ts":      datetime.now(UTC).isoformat(),
-            "level":   self.LEVEL_MAP.get(record.levelno, "info"),
-            "logger":  record.name,
+            "ts": datetime.now(UTC).isoformat(),
+            "level": self.LEVEL_MAP.get(record.levelno, "info"),
+            "logger": record.name,
             "message": record.getMessage(),
-            "module":  record.module,
-            "lineno":  record.lineno,
+            "module": record.module,
+            "lineno": record.lineno,
         }
 
         # 附加额外字段（如 request_id, user_id）

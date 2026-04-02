@@ -7,6 +7,7 @@
   - 用户动态 Feed
   - 活动管理（创建/报名/签到）
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,78 +29,93 @@ router = APIRouter(prefix="/community", tags=["community"])
 # ORM 模型
 # ─────────────────────────────────────────────────────────
 
+
 class Follow(Base):
     __tablename__ = "follows"
     __table_args__ = (UniqueConstraint("follower_id", "followee_id"),)
 
-    id          = Column(Integer, primary_key=True, index=True)
-    follower_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    followee_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    created_at  = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    id = Column(Integer, primary_key=True, index=True)
+    follower_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    followee_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class Message(Base):
     __tablename__ = "messages"
 
-    id          = Column(Integer, primary_key=True, index=True)
-    sender_id   = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
-    receiver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    content     = Column(Text, nullable=False)
-    is_read     = Column(Integer, default=0)
-    created_at  = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    receiver_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    content = Column(Text, nullable=False)
+    is_read = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class Activity(Base):
     __tablename__ = "activities"
 
-    id          = Column(Integer, primary_key=True, index=True)
-    title       = Column(String(200), nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    organizer   = Column(String(100), nullable=False)
-    start_time  = Column(DateTime(timezone=True), nullable=False)
-    end_time    = Column(DateTime(timezone=True), nullable=True)
-    location    = Column(String(200), nullable=True)
-    max_seats   = Column(Integer, default=0)  # 0 = 不限
-    created_at  = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    organizer = Column(String(100), nullable=False)
+    start_time = Column(DateTime(timezone=True), nullable=False)
+    end_time = Column(DateTime(timezone=True), nullable=True)
+    location = Column(String(200), nullable=True)
+    max_seats = Column(Integer, default=0)  # 0 = 不限
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 class ActivityRegistration(Base):
     __tablename__ = "activity_registrations"
     __table_args__ = (UniqueConstraint("activity_id", "user_identifier"),)
 
-    id              = Column(Integer, primary_key=True, index=True)
-    activity_id     = Column(Integer, ForeignKey("activities.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    activity_id = Column(
+        Integer, ForeignKey("activities.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     user_identifier = Column(String(100), nullable=False)  # 邮箱 or user_id
-    nickname        = Column(String(50), nullable=False)
-    checked_in      = Column(Integer, default=0)
-    registered_at   = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    nickname = Column(String(50), nullable=False)
+    checked_in = Column(Integer, default=0)
+    registered_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
 
 # ─────────────────────────────────────────────────────────
 # Schemas
 # ─────────────────────────────────────────────────────────
 
+
 class MessageCreate(BaseModel):
     receiver_id: int
-    content:     str
+    content: str
+
 
 class ActivityCreate(BaseModel):
-    title:       str
+    title: str
     description: Optional[str] = None
-    organizer:   str
-    start_time:  datetime
-    end_time:    Optional[datetime] = None
-    location:    Optional[str] = None
-    max_seats:   Optional[int] = 0
+    organizer: str
+    start_time: datetime
+    end_time: Optional[datetime] = None
+    location: Optional[str] = None
+    max_seats: Optional[int] = 0
+
 
 class RegisterRequest(BaseModel):
-    nickname:        str
-    user_identifier: str   # 邮箱 or 用户标识
+    nickname: str
+    user_identifier: str  # 邮箱 or 用户标识
 
 
 # ─────────────────────────────────────────────────────────
 # 关注 / 粉丝
 # ─────────────────────────────────────────────────────────
+
 
 @router.post("/users/{user_id}/follow", summary="关注/取消关注用户")
 def toggle_follow(user_id: int, request: Request, db: Session = Depends(get_db)):
@@ -113,10 +129,14 @@ def toggle_follow(user_id: int, request: Request, db: Session = Depends(get_db))
     if follower_id == user_id:
         raise HTTPException(400, "不能关注自己")
 
-    existing = db.query(Follow).filter(
-        Follow.follower_id == follower_id,
-        Follow.followee_id == user_id,
-    ).first()
+    existing = (
+        db.query(Follow)
+        .filter(
+            Follow.follower_id == follower_id,
+            Follow.followee_id == user_id,
+        )
+        .first()
+    )
 
     if existing:
         db.delete(existing)
@@ -131,12 +151,7 @@ def toggle_follow(user_id: int, request: Request, db: Session = Depends(get_db))
 
 @router.get("/users/{user_id}/followers", summary="获取粉丝列表")
 def get_followers(user_id: int, skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    rows = (
-        db.query(Follow)
-        .filter(Follow.followee_id == user_id)
-        .offset(skip).limit(limit)
-        .all()
-    )
+    rows = db.query(Follow).filter(Follow.followee_id == user_id).offset(skip).limit(limit).all()
     total = db.query(Follow).filter(Follow.followee_id == user_id).count()
     return {
         "total": total,
@@ -146,12 +161,7 @@ def get_followers(user_id: int, skip: int = 0, limit: int = 20, db: Session = De
 
 @router.get("/users/{user_id}/following", summary="获取关注列表")
 def get_following(user_id: int, skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    rows = (
-        db.query(Follow)
-        .filter(Follow.follower_id == user_id)
-        .offset(skip).limit(limit)
-        .all()
-    )
+    rows = db.query(Follow).filter(Follow.follower_id == user_id).offset(skip).limit(limit).all()
     total = db.query(Follow).filter(Follow.follower_id == user_id).count()
     return {
         "total": total,
@@ -162,6 +172,7 @@ def get_following(user_id: int, skip: int = 0, limit: int = 20, db: Session = De
 # ─────────────────────────────────────────────────────────
 # 私信
 # ─────────────────────────────────────────────────────────
+
 
 @router.post("/messages", status_code=201, summary="发送私信")
 def send_message(body: MessageCreate, request: Request, db: Session = Depends(get_db)):
@@ -197,18 +208,22 @@ def get_inbox(request: Request, skip: int = 0, limit: int = 20, db: Session = De
         db.query(Message)
         .filter(Message.receiver_id == user_id)
         .order_by(Message.created_at.desc())
-        .offset(skip).limit(limit)
+        .offset(skip)
+        .limit(limit)
         .all()
     )
-    unread = db.query(Message).filter(
-        Message.receiver_id == user_id, Message.is_read == 0
-    ).count()
+    unread = db.query(Message).filter(Message.receiver_id == user_id, Message.is_read == 0).count()
 
     return {
         "unread": unread,
         "items": [
-            {"id": m.id, "sender_id": m.sender_id, "content": m.content,
-             "is_read": bool(m.is_read), "created_at": m.created_at}
+            {
+                "id": m.id,
+                "sender_id": m.sender_id,
+                "content": m.content,
+                "is_read": bool(m.is_read),
+                "created_at": m.created_at,
+            }
             for m in msgs
         ],
     }
@@ -234,24 +249,24 @@ def mark_read(msg_id: int, request: Request, db: Session = Depends(get_db)):
 # 活动管理
 # ─────────────────────────────────────────────────────────
 
+
 @router.get("/activities", summary="获取活动列表")
 def list_activities(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    acts = (
-        db.query(Activity)
-        .order_by(Activity.start_time.desc())
-        .offset(skip).limit(limit)
-        .all()
-    )
+    acts = db.query(Activity).order_by(Activity.start_time.desc()).offset(skip).limit(limit).all()
     total = db.query(Activity).count()
     return {
         "total": total,
         "items": [
             {
-                "id": a.id, "title": a.title, "organizer": a.organizer,
-                "start_time": a.start_time, "location": a.location,
+                "id": a.id,
+                "title": a.title,
+                "organizer": a.organizer,
+                "start_time": a.start_time,
+                "location": a.location,
                 "max_seats": a.max_seats,
                 "registered": db.query(ActivityRegistration)
-                               .filter(ActivityRegistration.activity_id == a.id).count(),
+                .filter(ActivityRegistration.activity_id == a.id)
+                .count(),
             }
             for a in acts
         ],
@@ -275,17 +290,23 @@ def register_activity(activity_id: int, body: RegisterRequest, db: Session = Dep
 
     # 检查座位
     if act.max_seats > 0:
-        count = db.query(ActivityRegistration).filter(
-            ActivityRegistration.activity_id == activity_id
-        ).count()
+        count = (
+            db.query(ActivityRegistration)
+            .filter(ActivityRegistration.activity_id == activity_id)
+            .count()
+        )
         if count >= act.max_seats:
             raise HTTPException(409, "报名人数已满")
 
     # 防重复报名
-    existing = db.query(ActivityRegistration).filter(
-        ActivityRegistration.activity_id == activity_id,
-        ActivityRegistration.user_identifier == body.user_identifier,
-    ).first()
+    existing = (
+        db.query(ActivityRegistration)
+        .filter(
+            ActivityRegistration.activity_id == activity_id,
+            ActivityRegistration.user_identifier == body.user_identifier,
+        )
+        .first()
+    )
     if existing:
         raise HTTPException(409, "已报名此活动")
 
@@ -302,10 +323,14 @@ def register_activity(activity_id: int, body: RegisterRequest, db: Session = Dep
 
 @router.post("/activities/{activity_id}/checkin", summary="活动签到")
 def checkin_activity(activity_id: int, body: RegisterRequest, db: Session = Depends(get_db)):
-    reg = db.query(ActivityRegistration).filter(
-        ActivityRegistration.activity_id == activity_id,
-        ActivityRegistration.user_identifier == body.user_identifier,
-    ).first()
+    reg = (
+        db.query(ActivityRegistration)
+        .filter(
+            ActivityRegistration.activity_id == activity_id,
+            ActivityRegistration.user_identifier == body.user_identifier,
+        )
+        .first()
+    )
     if not reg:
         raise HTTPException(404, "未找到报名记录")
     if reg.checked_in:
@@ -317,14 +342,18 @@ def checkin_activity(activity_id: int, body: RegisterRequest, db: Session = Depe
 
 @router.get("/activities/{activity_id}/registrations", summary="获取报名名单")
 def list_registrations(activity_id: int, db: Session = Depends(get_db)):
-    regs = db.query(ActivityRegistration).filter(
-        ActivityRegistration.activity_id == activity_id
-    ).all()
+    regs = (
+        db.query(ActivityRegistration).filter(ActivityRegistration.activity_id == activity_id).all()
+    )
     return {
         "total": len(regs),
         "items": [
-            {"id": r.id, "nickname": r.nickname, "checked_in": bool(r.checked_in),
-             "registered_at": r.registered_at}
+            {
+                "id": r.id,
+                "nickname": r.nickname,
+                "checked_in": bool(r.checked_in),
+                "registered_at": r.registered_at,
+            }
             for r in regs
         ],
     }
