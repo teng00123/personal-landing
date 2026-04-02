@@ -38,7 +38,7 @@
           <div class="msg msg-ai welcome-msg">
             <div class="msg-avatar">🤖</div>
             <div class="msg-bubble">
-              👋 你好！我是这个主页的 AI 助手，可以回答关于博主的技能、项目和文章的问题。
+              👋 你好！我是博主的专属 AI 助手，了解他的技能、项目和所有文章。有什么想知道的？
               <div class="quick-questions">
                 <button
                   v-for="q in quickQuestions"
@@ -113,9 +113,9 @@ const messagesEl = ref(null)
 const inputEl = ref(null)
 
 const quickQuestions = [
-  '你擅长哪些技术？',
+  '作者擅长哪些技术？',
+  '有哪些推荐的文章？',
   '做过哪些项目？',
-  '有推荐的文章吗？',
 ]
 
 function openChat() {
