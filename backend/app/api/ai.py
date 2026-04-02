@@ -391,7 +391,7 @@ class ChatRequest(BaseModel):
 
 
 def _build_persona_system(db: Session) -> str:
-    """从数据库实时构建 system prompt，只包含作者真实信息"""
+    """从数据库实时构建 system prompt，只包含作者真实数据"""
     from sqlalchemy import text as sa_text
 
     sections: list[str] = []
@@ -402,10 +402,28 @@ def _build_persona_system(db: Session) -> str:
         author = db.query(User).filter(User.is_admin == True, User.is_active == True).first()
         if author:
             info_lines = [f"姓名：{author.full_name or author.username}"]
+            if getattr(author, "title", None):
+                info_lines.append(f"职位：{author.title}")
             if getattr(author, "bio", None):
                 info_lines.append(f"简介：{author.bio}")
-            if getattr(author, "skills", None):
-                info_lines.append(f"技能：{author.skills}")
+            # 技能从 resume_data JSON 中解析，而非不存在的 skills 列
+            if getattr(author, "resume_data", None):
+                try:
+                    rd = json.loads(author.resume_data)
+                    skill_groups = rd.get("skills", [])
+                    all_skills = []
+                    for grp in skill_groups:
+                        all_skills.extend(
+                            item.get("name", "")
+                            for item in grp.get("items", [])
+                            if item.get("name")
+                        )
+                    if all_skills:
+                        info_lines.append(f"技能：{'、'.join(all_skills)}")
+                except Exception:
+                    pass
+            if getattr(author, "location", None):
+                info_lines.append(f"所在地：{author.location}")
             if getattr(author, "github_url", None):
                 info_lines.append(f"GitHub：{author.github_url}")
             if getattr(author, "linkedin_url", None):
@@ -414,23 +432,23 @@ def _build_persona_system(db: Session) -> str:
     except Exception as e:
         logger.warning("Failed to load author info: %s", e)
 
-    # ── 已发布文章列表（最多 20 篇） ──
+    # ── 已发布文章列表（最多 20 篇）──
     try:
         rows = db.execute(
             sa_text(
-                "SELECT title, summary, tags, slug FROM articles "
+                "SELECT title, summary, tags FROM articles "
                 "WHERE is_published=1 ORDER BY created_at DESC LIMIT 20"
             )
         ).fetchall()
         if rows:
             article_lines = []
             for r in rows:
-                title, summary, tags, slug = r[0], r[1], r[2], r[3]
+                title, summary, tags = r[0], r[1], r[2]
                 line = f"- 《{title}》"
                 if tags:
                     line += f" [标签: {tags}]"
                 if summary:
-                    line += f"\n  摘要: {summary[:80]}{'...' if len(summary or '') > 80 else ''}"
+                    line += f"\n  摘要: {summary[:80]}{'...' if len(summary) > 80 else ''}"
                 article_lines.append(line)
             sections.append("【作者文章（共 {} 篇）】\n{}".format(len(rows), "\n".join(article_lines)))
     except Exception as e:
@@ -440,7 +458,8 @@ def _build_persona_system(db: Session) -> str:
     try:
         proj_rows = db.execute(
             sa_text(
-                "SELECT name, description, tech_stack FROM projects LIMIT 15"
+                "SELECT name, description, tech_stack FROM projects "
+                "WHERE is_published=1 ORDER BY sort_order ASC LIMIT 15"
             )
         ).fetchall()
         if proj_rows:
@@ -457,16 +476,16 @@ def _build_persona_system(db: Session) -> str:
     except Exception as e:
         logger.warning("Failed to load projects: %s", e)
 
-    context = "\n\n".join(sections) if sections else "（暂无作者信息）"
+    context = "\n\n".join(sections) if sections else "（暂无作者信息，请管理员完善个人资料）"
 
     return (
         "你是这个个人主页的专属 AI 助手，只负责介绍该主页作者的个人信息。\n\n"
-        "以下是作者的真实信息，请严格基于这些内容回答，不要编造或补充任何不在此列表中的内容：\n\n"
+        "以下是作者的真实信息，请严格基于这些内容回答，不要编造任何不在此列表中的内容：\n\n"
         f"{context}\n\n"
         "回答规则：\n"
         "1. 只回答与该作者相关的问题（技能、文章、项目、个人经历等）\n"
         "2. 推荐文章时，只能从上面【作者文章】列表中选取，逐条列出标题和摘要\n"
-        "3. 如果用户问的内容不在以上信息中（如时事、天气、其他人），请礼貌说明：\n"
+        "3. 如果用户问的内容超出以上信息范围，请礼貌说明：\n"
         "   「抱歉，我只能回答关于本主页作者的问题 😊」\n"
         "4. 语气友好、简洁，可使用 Markdown 格式\n"
         "5. 如果作者信息为空，提示用户联系管理员完善个人资料"
@@ -479,7 +498,7 @@ async def chat_ask(
     db: Session = Depends(get_db),
     cache: CacheManager = Depends(get_cache),
 ):
-    """访客聊天助手：只回答关于作者本人的内容，数据来自数据库"""
+    """访客聊天助手：基于作者真实数据回答，技能从 resume_data JSON 中读取"""
     cache_key = f"ai:chat:{hashlib.md5(req.question.encode()).hexdigest()}"
     if cached := await cache.get(cache_key):
         return StreamingResponse(
