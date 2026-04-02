@@ -2,16 +2,26 @@
   <!-- 浮动触发按钮 -->
   <div class="visitor-chat-root">
     <transition name="chat-bounce">
-      <button
-        v-if="!isOpen"
-        class="chat-fab"
-        :class="{ pulse: !hasOpened }"
-        @click="openChat"
-        aria-label="和 AI 聊聊"
-      >
-        <span class="fab-icon">🤖</span>
-        <span class="fab-badge" v-if="!hasOpened">👋</span>
-      </button>
+      <div v-if="!isOpen" class="chat-fab-wrap">
+        <!-- Tooltip 气泡 -->
+        <transition name="tooltip-fade">
+          <div class="chat-tooltip" v-if="showTooltip">
+            <span>👋 有任何问题，随时问我！</span>
+            <button class="tooltip-close" @click.stop="dismissTooltip">✕</button>
+          </div>
+        </transition>
+        <!-- FAB 按钮 -->
+        <button
+          class="chat-fab"
+          @click="openChat"
+          aria-label="和 AI 聊聊"
+        >
+          <span class="fab-glow"></span>
+          <span class="fab-icon">🤖</span>
+          <span class="fab-label">AI 助手</span>
+          <span class="fab-dot" v-if="showTooltip"></span>
+        </button>
+      </div>
     </transition>
 
     <!-- 聊天面板 -->
@@ -38,7 +48,7 @@
           <div class="msg msg-ai welcome-msg">
             <div class="msg-avatar">🤖</div>
             <div class="msg-bubble">
-              👋 你好！我是这个主页的 AI 助手，可以回答关于博主的技能、项目和文章的问题。
+              👋 你好！我是博主的专属 AI 助手，了解他的技能、项目和所有文章。有什么想知道的？
               <div class="quick-questions">
                 <button
                   v-for="q in quickQuestions"
@@ -101,11 +111,26 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 
 const isOpen = ref(false)
 const hasOpened = ref(false)
 const isStreaming = ref(false)
+
+// Tooltip 逻辑
+const TOOLTIP_KEY = 'vc_tooltip_dismissed'
+const showTooltip = ref(false)
+
+function dismissTooltip() {
+  showTooltip.value = false
+  localStorage.setItem(TOOLTIP_KEY, '1')
+}
+
+onMounted(() => {
+  if (!localStorage.getItem(TOOLTIP_KEY)) {
+    setTimeout(() => { showTooltip.value = true }, 2000)
+  }
+})
 const inputText = ref('')
 const streamingText = ref('')
 const messages = ref([])
@@ -113,14 +138,15 @@ const messagesEl = ref(null)
 const inputEl = ref(null)
 
 const quickQuestions = [
-  '你擅长哪些技术？',
+  '作者擅长哪些技术？',
+  '有哪些推荐的文章？',
   '做过哪些项目？',
-  '有推荐的文章吗？',
 ]
 
 function openChat() {
   isOpen.value = true
   hasOpened.value = true
+  showTooltip.value = false
   nextTick(() => inputEl.value?.focus())
 }
 
@@ -232,55 +258,125 @@ async function sendMessage() {
 <style scoped>
 .visitor-chat-root {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 28px;
+  right: 28px;
   z-index: 9999;
   font-family: var(--font-sans, system-ui, sans-serif);
 }
 
-/* ── FAB 按钮 ── */
+/* ── FAB 包裹（含 tooltip） ── */
+.chat-fab-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* ── FAB 按钮（胶囊形，更醒目） ── */
 .chat-fab {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 22px 14px 16px;
+  border-radius: 50px;
   background: linear-gradient(135deg, var(--c-primary, #5b8dee), #8b6cf7);
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(91,141,238,.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+  color: #fff;
+  font-size: .9375rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  box-shadow: 0 6px 24px rgba(91,141,238,.5), 0 2px 8px rgba(0,0,0,.15);
   transition: transform .2s ease, box-shadow .2s ease;
+  white-space: nowrap;
 }
 .chat-fab:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 28px rgba(91,141,238,.6);
+  transform: translateY(-4px) scale(1.04);
+  box-shadow: 0 12px 36px rgba(91,141,238,.6), 0 4px 12px rgba(0,0,0,.2);
 }
-.fab-icon { font-size: 24px; line-height: 1; }
-.fab-badge {
+
+/* 光晕呼吸动画 */
+.fab-glow {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  font-size: 16px;
-  animation: wave 1.5s ease-in-out infinite;
+  inset: -2px;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #5b8dee, #8b6cf7);
+  opacity: .4;
+  filter: blur(10px);
+  animation: glow-pulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
 }
-@keyframes wave {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(20deg); }
-  75% { transform: rotate(-10deg); }
+@keyframes glow-pulse {
+  0%, 100% { opacity: .3; transform: scale(1); }
+  50%       { opacity: .6; transform: scale(1.06); }
 }
-.pulse::before {
+
+.fab-icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.fab-label { letter-spacing: .03em; }
+
+/* 红点提示 */
+.fab-dot {
+  position: absolute;
+  top: 8px; right: 10px;
+  width: 9px; height: 9px;
+  background: #ff4d4f;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  animation: dot-pulse 1.8s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.35); opacity: .7; }
+}
+
+/* ── Tooltip 气泡 ── */
+.chat-tooltip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--c-bg-card, #fff);
+  border: 1px solid rgba(91,141,238,.25);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,.12);
+  font-size: .8125rem;
+  color: var(--c-text, #1a2035);
+  max-width: 220px;
+  line-height: 1.45;
+}
+.chat-tooltip::after {
   content: '';
   position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: rgba(91,141,238,.3);
-  animation: pulseRing 2s ease-out infinite;
+  bottom: -7px; right: 24px;
+  width: 12px; height: 12px;
+  background: var(--c-bg-card, #fff);
+  border-right: 1px solid rgba(91,141,238,.25);
+  border-bottom: 1px solid rgba(91,141,238,.25);
+  transform: rotate(45deg);
 }
-@keyframes pulseRing {
-  0% { transform: scale(1); opacity: .8; }
-  100% { transform: scale(1.6); opacity: 0; }
+.tooltip-close {
+  background: none; border: none;
+  color: var(--c-text-muted, #8899b0);
+  cursor: pointer; font-size: 12px;
+  padding: 0; flex-shrink: 0; line-height: 1;
+  transition: color .15s;
+}
+.tooltip-close:hover { color: var(--c-text, #1a2035); }
+
+/* Tooltip 动画 */
+.tooltip-fade-enter-active { transition: all .25s ease; }
+.tooltip-fade-leave-active { transition: all .18s ease; }
+.tooltip-fade-enter-from,
+.tooltip-fade-leave-to { opacity: 0; transform: translateY(8px); }
+
+@media (max-width: 480px) {
+  .visitor-chat-root { right: 16px; bottom: 18px; }
+  .fab-label { display: none; }
+  .chat-fab { padding: 14px; border-radius: 50%; }
+  .fab-glow { border-radius: 50%; }
 }
 
 /* ── 聊天面板 ── */
