@@ -106,6 +106,42 @@
       <router-view />
     </main>
 
+    <!-- ── AI 助手悬浮入口 ──────────────────────────── -->
+    <transition name="fab-pop">
+      <div class="ai-fab-wrap" v-if="!aiOpen">
+        <!-- Tooltip 气泡 -->
+        <transition name="tooltip-fade">
+          <div class="ai-tooltip" v-if="showTooltip">
+            <span>✨ 试试 AI 助手，帮你写文章、优化内容！</span>
+            <button class="tooltip-close" @click.stop="dismissTooltip">✕</button>
+          </div>
+        </transition>
+        <!-- 悬浮按钮 -->
+        <button class="ai-fab" @click="openAI" aria-label="打开 AI 助手">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+            <path d="M9 8h2v8H9zm4 0h2v8h-2z" fill="none"/>
+            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="0"/>
+          </svg>
+          <svg class="ai-fab-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <circle cx="9"  cy="10" r="1" fill="currentColor"/>
+            <circle cx="12" cy="10" r="1" fill="currentColor"/>
+            <circle cx="15" cy="10" r="1" fill="currentColor"/>
+          </svg>
+          <span class="ai-fab-label">AI 助手</span>
+          <span class="ai-fab-dot" v-if="showTooltip"></span>
+        </button>
+      </div>
+    </transition>
+
+    <!-- AI 助手面板 -->
+    <transition name="panel-slide">
+      <div class="ai-panel-wrap" v-if="aiOpen">
+        <AIAssistant @close="aiOpen = false" />
+      </div>
+    </transition>
+
     <!-- ── 页脚 ───────────────────────────────────────── -->
     <footer class="pub-footer">
       <div class="footer-glow"></div>
@@ -161,6 +197,7 @@ import { useAuthStore } from '@/store/auth.js'
 import SearchModal from '@/components/SearchModal.vue'
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import AIAssistant from '@/components/AIAssistant.vue'
 
 const auth     = useAuthStore()
 const profile  = ref(null)
@@ -168,11 +205,31 @@ const menuOpen = ref(false)
 const scrolled = ref(false)
 const year     = computed(() => new Date().getFullYear())
 
+// AI 助手状态
+const aiOpen       = ref(false)
+const showTooltip  = ref(false)
+const TOOLTIP_KEY  = 'ai_tooltip_dismissed'
+
+function openAI() {
+  aiOpen.value = true
+  showTooltip.value = false
+}
+
+function dismissTooltip() {
+  showTooltip.value = false
+  localStorage.setItem(TOOLTIP_KEY, '1')
+}
+
 const handleScroll = () => { scrolled.value = window.scrollY > 20 }
 
 onMounted(async () => {
   try { profile.value = await profileApi.get() } catch {}
   window.addEventListener('scroll', handleScroll, { passive: true })
+
+  // 首次访问或未永久关闭时，延迟 2s 展示 tooltip
+  if (!localStorage.getItem(TOOLTIP_KEY)) {
+    setTimeout(() => { showTooltip.value = true }, 2000)
+  }
 })
 
 onUnmounted(() => {
@@ -391,5 +448,138 @@ onUnmounted(() => {
   .nav__burger { display: flex; }
   .nav__tools  { gap: 4px; }
   .footer-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+}
+
+/* ── AI 悬浮入口 ──────────────────────────────────────── */
+.ai-fab-wrap {
+  position: fixed;
+  bottom: 32px;
+  right: 28px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.ai-fab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px 10px 14px;
+  background: linear-gradient(135deg, #5b8dee, #a78bfa);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: .875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(91, 141, 238, 0.45);
+  transition: transform .2s ease, box-shadow .2s ease;
+  white-space: nowrap;
+}
+.ai-fab:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 28px rgba(91, 141, 238, 0.55);
+}
+.ai-fab-icon { flex-shrink: 0; }
+.ai-fab-label { letter-spacing: .02em; }
+
+/* 红点提示 */
+.ai-fab-dot {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background: #ff4d4f;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  animation: dot-pulse 1.8s ease-in-out infinite;
+}
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.3); opacity: .7; }
+}
+
+/* Tooltip 气泡 */
+.ai-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg-secondary, #1a2035);
+  border: 1px solid rgba(91, 141, 238, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  font-size: .8125rem;
+  color: var(--c-text, #e0e6f0);
+  max-width: 240px;
+  line-height: 1.45;
+}
+[data-theme="light"] .ai-tooltip {
+  background: #fff;
+  border-color: rgba(91, 141, 238, 0.25);
+  color: #1a2035;
+  box-shadow: 0 6px 24px rgba(60, 80, 180, 0.12);
+}
+/* 小箭头 */
+.ai-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 22px;
+  width: 12px;
+  height: 12px;
+  background: var(--bg-secondary, #1a2035);
+  border-right: 1px solid rgba(91, 141, 238, 0.3);
+  border-bottom: 1px solid rgba(91, 141, 238, 0.3);
+  transform: rotate(45deg);
+}
+[data-theme="light"] .ai-tooltip::after {
+  background: #fff;
+}
+.tooltip-close {
+  background: none;
+  border: none;
+  color: var(--c-text-muted, #8899b0);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color .15s;
+}
+.tooltip-close:hover { color: var(--c-text, #e0e6f0); }
+
+/* AI 面板定位包裹 */
+.ai-panel-wrap {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 200;
+}
+
+/* ── 动画 ────────────────────────────────────────────── */
+.fab-pop-enter-active    { transition: all .3s cubic-bezier(.34,1.56,.64,1); }
+.fab-pop-leave-active    { transition: all .2s ease; }
+.fab-pop-enter-from,
+.fab-pop-leave-to        { opacity: 0; transform: scale(.7) translateY(16px); }
+
+.tooltip-fade-enter-active { transition: all .25s ease; }
+.tooltip-fade-leave-active { transition: all .18s ease; }
+.tooltip-fade-enter-from,
+.tooltip-fade-leave-to     { opacity: 0; transform: translateY(8px); }
+
+.panel-slide-enter-active { transition: all .3s cubic-bezier(.34,1.56,.64,1); }
+.panel-slide-leave-active { transition: all .2s ease; }
+.panel-slide-enter-from,
+.panel-slide-leave-to     { opacity: 0; transform: scale(.92) translateY(20px); }
+
+@media (max-width: 480px) {
+  .ai-fab-wrap, .ai-panel-wrap { right: 16px; bottom: 20px; }
+  .ai-fab-label { display: none; }
+  .ai-fab { padding: 12px; border-radius: 50%; }
 }
 </style>
