@@ -391,36 +391,134 @@ class ChatRequest(BaseModel):
     question: str
 
 
-@router.post("/chat/ask", summary="通用聊天助手（流式响应）")
-async def chat_ask(req: ChatRequest, cache: CacheManager = Depends(get_cache)):
-    """通用聊天助手，支持流式响应"""
-    cache_key = f"ai:chat:{hashlib.md5(req.question.encode()).hexdigest()}"
-    if cached := await cache.get(cache_key):
-        # 对于缓存的内容，也返回流式格式
-        return StreamingResponse(
-            _stream_cached_response(cached),
-            media_type="text/plain; charset=utf-8"
-        )
+def _build_persona_system(db: Session) -> str:
+    """从数据库实时构建 system prompt，只包含作者真实数据"""
+    from sqlalchemy import text as sa_text
 
-    # 构建系统提示词
-    system = (
-        "你是一位专业的技术助手，专门回答关于这个个人主页的问题。"
-        "主页包含技术文章、项目经验和技能介绍。"
-        "请用友好、专业的语气回答用户的问题，如果问题超出你的知识范围，请礼貌地说明。"
-        "回答要简洁明了，使用Markdown格式增强可读性。"
+    sections: list[str] = []
+
+    # ── 作者基本信息 ──
+    try:
+        from app.models.user import User
+        author = db.query(User).filter(User.is_admin == True, User.is_active == True).first()
+        if author:
+            info_lines = [f"姓名：{author.full_name or author.username}"]
+            if getattr(author, "title", None):
+                info_lines.append(f"职位：{author.title}")
+            if getattr(author, "bio", None):
+                info_lines.append(f"简介：{author.bio}")
+            # 技能从 resume_data JSON 中解析，而非不存在的 skills 列
+            if getattr(author, "resume_data", None):
+                try:
+                    rd = json.loads(author.resume_data)
+                    skill_groups = rd.get("skills", [])
+                    all_skills = []
+                    for grp in skill_groups:
+                        all_skills.extend(
+                            item.get("name", "")
+                            for item in grp.get("items", [])
+                            if item.get("name")
+                        )
+                    if all_skills:
+                        info_lines.append(f"技能：{'、'.join(all_skills)}")
+                except Exception:
+                    pass
+            if getattr(author, "location", None):
+                info_lines.append(f"所在地：{author.location}")
+            if getattr(author, "github_url", None):
+                info_lines.append(f"GitHub：{author.github_url}")
+            if getattr(author, "linkedin_url", None):
+                info_lines.append(f"LinkedIn：{author.linkedin_url}")
+            sections.append("【作者信息】\n" + "\n".join(info_lines))
+    except Exception as e:
+        logger.warning("Failed to load author info: %s", e)
+
+    # ── 已发布文章列表（最多 20 篇）──
+    try:
+        rows = db.execute(
+            sa_text(
+                "SELECT title, summary, tags FROM articles "
+                "WHERE is_published=1 ORDER BY created_at DESC LIMIT 20"
+            )
+        ).fetchall()
+        if rows:
+            article_lines = []
+            for r in rows:
+                title, summary, tags = r[0], r[1], r[2]
+                line = f"- 《{title}》"
+                if tags:
+                    line += f" [标签: {tags}]"
+                if summary:
+                    line += f"\n  摘要: {summary[:80]}{'...' if len(summary) > 80 else ''}"
+                article_lines.append(line)
+            sections.append("【作者文章（共 {} 篇）】\n{}".format(len(rows), "\n".join(article_lines)))
+    except Exception as e:
+        logger.warning("Failed to load articles: %s", e)
+
+    # ── 项目列表 ──
+    try:
+        proj_rows = db.execute(
+            sa_text(
+                "SELECT name, description, tech_stack FROM projects "
+                "WHERE is_published=1 ORDER BY sort_order ASC LIMIT 15"
+            )
+        ).fetchall()
+        if proj_rows:
+            proj_lines = []
+            for r in proj_rows:
+                name, desc, tech = r[0], r[1], r[2]
+                line = f"- {name}"
+                if tech:
+                    line += f" [技术栈: {tech}]"
+                if desc:
+                    line += f"\n  {desc[:80]}{'...' if len(desc or '') > 80 else ''}"
+                proj_lines.append(line)
+            sections.append("【作者项目】\n" + "\n".join(proj_lines))
+    except Exception as e:
+        logger.warning("Failed to load projects: %s", e)
+
+    context = "\n\n".join(sections) if sections else "（暂无作者信息，请管理员完善个人资料）"
+
+    return (
+        "你是这个个人主页的专属 AI 助手，只负责介绍该主页作者的个人信息。\n\n"
+        "以下是作者的真实信息，请严格基于这些内容回答，不要编造任何不在此列表中的内容：\n\n"
+        f"{context}\n\n"
+        "回答规则：\n"
+        "1. 只回答与该作者相关的问题（技能、文章、项目、个人经历等）\n"
+        "2. 推荐文章时，只能从上面【作者文章】列表中选取，逐条列出标题和摘要\n"
+        "3. 如果用户问的内容超出以上信息范围，请礼貌说明：\n"
+        "   「抱歉，我只能回答关于本主页作者的问题 😊」\n"
+        "4. 语气友好、简洁，可使用 Markdown 格式\n"
+        "5. 如果作者信息为空，提示用户联系管理员完善个人资料"
     )
 
+
+@router.post("/chat/ask", summary="通用聊天助手（流式响应）")
+async def chat_ask(
+    req: ChatRequest,
+    db: Session = Depends(get_db),
+    cache: CacheManager = Depends(get_cache),
+):
+    """访客聊天助手：基于作者真实数据回答，技能从 resume_data JSON 中读取"""
+    cache_key = f"ai:chat:{hashlib.md5(req.question.encode()).hexdigest()}"
+    if cached := await cache.get(cache_key):
+        return StreamingResponse(
+            _stream_cached_response(cached),
+            media_type="text/plain; charset=utf-8",
+        )
+
+    system = _build_persona_system(db)
+
     try:
-        # 使用流式响应
         return StreamingResponse(
             _stream_ai_response(system, req.question),
-            media_type="text/plain; charset=utf-8"
+            media_type="text/plain; charset=utf-8",
         )
     except Exception as e:
         logger.error("AI chat failed: %s", e)
         return StreamingResponse(
             _stream_error_response("AI 服务暂时不可用，请稍后重试"),
-            media_type="text/plain; charset=utf-8"
+            media_type="text/plain; charset=utf-8",
         )
 
 
