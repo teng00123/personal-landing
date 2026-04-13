@@ -80,6 +80,18 @@ class PasswordChange(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    mfa_code: Optional[str] = None  # 登录时带上 TOTP 码（已开启 MFA 时必须）
+
+
+class MfaChallenge(BaseModel):
+    """MFA 二步验证中间状态"""
+    mfa_required: bool = True
+    mfa_token: str  # 短期 JWT，仅用于完成 MFA
+
+
+class MfaVerify(BaseModel):
+    mfa_token: str
+    code: str
 
 
 class Token(BaseModel):

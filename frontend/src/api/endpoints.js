@@ -2,7 +2,8 @@ import http from './http.js'
 
 // ── Auth ────────────────────────────────────────────────
 export const authApi = {
-  login: (data) => http.post('/auth/login', data),
+  login:    (data) => http.post('/auth/login', data),
+  loginMfa: (data) => http.post('/auth/login/mfa', data),
   me:    ()     => http.get('/auth/me'),
 }
 

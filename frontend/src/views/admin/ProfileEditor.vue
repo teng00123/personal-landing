@@ -76,6 +76,12 @@
         💾 保存
       </el-button>
     </el-form>
+
+    <!-- 账号安全 -->
+    <div style="max-width:900px;margin-top:40px">
+      <h2 class="page-h2">🔐 账号安全</h2>
+      <MFASetup />
+    </div>
   </div>
 </template>
 
@@ -83,6 +89,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { profileApi } from '@/api/endpoints.js'
+import MFASetup from '@/components/MFASetup.vue'
 
 const loading = ref(false)
 const saving  = ref(false)

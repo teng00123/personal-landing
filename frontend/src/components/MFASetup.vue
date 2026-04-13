@@ -62,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import http from '@/api/http.js'
 
 const mfaEnabled = ref(false)
@@ -73,6 +73,15 @@ const code    = ref('')
 const loading = ref(false)
 const message = ref('')
 const msgType = ref('success')
+
+onMounted(async () => {
+  try {
+    const data = await http.get('/auth/security/mfa/status')
+    mfaEnabled.value = data.mfa_enabled
+  } catch {
+    // 非致命错误，保持默认关闭状态
+  }
+})
 
 async function startSetup() {
   loading.value = true
