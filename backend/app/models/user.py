@@ -36,6 +36,11 @@ class User(Base):
     # }
     resume_data = Column(Text)
 
+    # ── MFA ─────────────────────────────────────────────────────
+    mfa_enabled = Column(Boolean, default=False, nullable=False, server_default="0")
+    mfa_secret  = Column(String(64), nullable=True)  # Base32 TOTP secret
+    mfa_pending_secret = Column(String(64), nullable=True)  # 绑定中，尚未确认
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
