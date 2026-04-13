@@ -68,7 +68,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  DataAnalysis, User, Document, Monitor,
+  DataAnalysis, User, Document, Monitor, Operation,
   House, SwitchButton, Close, Menu,
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/store/auth.js'
@@ -84,6 +84,7 @@ const navItems = [
   { to: '/admin/profile',   label: '个人资料', icon: 'User' },
   { to: '/admin/articles',  label: '文章管理', icon: 'Document' },
   { to: '/admin/projects',  label: '项目管理', icon: 'Monitor' },
+  { to: '/playground',      label: '代码运行', icon: 'Operation' },
 ]
 
 const currentNav = computed(() =>
