@@ -17,6 +17,8 @@ const router = createRouter({
         { path: 'articles',   name: 'articles',       component: () => import('@/views/public/ArticlesView.vue'),  meta: { title: '文章' } },
         { path: 'articles/:slug', name: 'article-detail', component: () => import('@/views/public/ArticleDetail.vue'), meta: { title: '文章详情' } },
         { path: 'projects',   name: 'projects',       component: () => import('@/views/public/ProjectsView.vue'),  meta: { title: '项目' } },
+        { path: 'playground', name: 'playground',     component: () => import('@/views/public/PlaygroundView.vue'), meta: { title: '代码运行' } },
+        { path: 'community',  name: 'community',     component: () => import('@/views/CommunityActivities.vue'),  meta: { title: '社区活动' } },
       ],
     },
 
