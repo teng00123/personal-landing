@@ -36,6 +36,12 @@
           <router-link to="/projects" class="nav__link">
             <span>{{ $t('nav.projects') }}</span>
           </router-link>
+          <router-link to="/playground" class="nav__link">
+            <span>⚡ {{ $t('nav.playground') }}</span>
+          </router-link>
+          <router-link to="/community" class="nav__link">
+            <span>🎉 {{ $t('nav.community') }}</span>
+          </router-link>
           <router-link v-if="auth.isLoggedIn" to="/admin" class="nav__admin-btn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="opacity:.8">
               <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/>
@@ -84,6 +90,14 @@
           <router-link to="/projects" class="nav__mobile-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" opacity=".7"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.36 0-2.55-2.08-4.64-4.64-4.64-1.37 0-2.58.58-3.44 1.51L9 3.5 8.08 2.51C7.22 1.58 6.01 1 4.64 1 2.09 1 0 3.09 0 5.64c0 .48.11.92.18 1.36H0v2h20V6z"/></svg>
             {{ $t('nav.projects') }}
+          </router-link>
+          <router-link to="/playground" class="nav__mobile-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" opacity=".7"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+            ⚡ {{ $t('nav.playground') }}
+          </router-link>
+          <router-link to="/community" class="nav__mobile-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" opacity=".7"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            🎉 {{ $t('nav.community') }}
           </router-link>
           <router-link v-if="auth.isLoggedIn" to="/admin" class="nav__mobile-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" opacity=".7"><path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/></svg>

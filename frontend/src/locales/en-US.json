@@ -74,7 +74,9 @@
   "nav": {
     "home": "Home",
     "articles": "Articles",
-    "projects": "Projects"
+    "projects": "Projects",
+    "playground": "Playground",
+    "community": "Community"
   },
   "search": {
     "placeholder": "Search articles, projects...",

@@ -74,7 +74,9 @@
   "nav": {
     "home": "首页",
     "articles": "文章",
-    "projects": "项目"
+    "projects": "项目",
+    "playground": "代码运行",
+    "community": "社区活动"
   },
   "search": {
     "placeholder": "搜索文章、项目...",
