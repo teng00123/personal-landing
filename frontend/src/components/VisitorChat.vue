@@ -66,10 +66,20 @@
             v-for="(msg, idx) in messages"
             :key="idx"
             class="msg"
-            :class="msg.role === 'user' ? 'msg-user' : 'msg-ai'"
+            :class="[msg.role === 'user' ? 'msg-user' : 'msg-ai', { 'msg-error': msg.isError }]"
           >
             <div class="msg-avatar" v-if="msg.role === 'ai'">🤖</div>
-            <div class="msg-bubble" v-html="renderContent(msg.content)"></div>
+            <div class="msg-bubble">
+              <div v-html="renderContent(msg.content)"></div>
+              <button
+                v-if="msg.canRetry"
+                class="retry-btn"
+                @click="retryMessage(msg)"
+                :disabled="isStreaming"
+              >
+                🔄 重试
+              </button>
+            </div>
             <div class="msg-avatar user-avatar" v-if="msg.role === 'user'">你</div>
           </div>
 
@@ -154,6 +164,25 @@ function closeChat() {
   isOpen.value = false
 }
 
+function _buildErrorMessage(type) {
+  switch (type) {
+    case 'network':
+      return '😔 网络连接不稳定，请检查网络后重试。'
+    case 'openai_unavailable':
+      return '🤖 AI 服务暂时不可用（可能 OpenAI API 不通）。<br>您可以通过其他方式联系博主：<br>· GitHub: <a href="https://github.com/teng00123" target="_blank">@teng00123</a><br>· Email: 页面底部有联系方式'
+    default:
+      return '😞 抱歉，出了点小问题。请稍后重试或直接联系博主。'
+  }
+}
+
+function retryMessage(msg) {
+  if (!msg.canRetry || !msg.retryQuestion) return
+  // 移除错误消息，重新发送
+  const idx = messages.value.indexOf(msg)
+  if (idx > -1) messages.value.splice(idx, 1)
+  sendAsk(msg.retryQuestion)
+}
+
 function renderContent(text) {
   if (!text) return ''
   // 简单 markdown：粗体、代码、换行
@@ -199,6 +228,8 @@ async function sendMessage() {
   // 开始流式请求
   isStreaming.value = true
   streamingText.value = ''
+  let errorOccurred = false
+  let errorType = 'generic'  // 'generic' | 'network' | 'openai_unavailable'
 
   try {
     const res = await fetch('/api/v1/ai/chat/ask', {
@@ -208,6 +239,12 @@ async function sendMessage() {
     })
 
     if (!res.ok) {
+      // 判断错误类型
+      if (res.status === 503 || res.status === 502) {
+        errorType = 'openai_unavailable'
+      } else if (res.status >= 500) {
+        errorType = 'generic'
+      }
       throw new Error(`HTTP ${res.status}`)
     }
 
@@ -228,7 +265,13 @@ async function sendMessage() {
         const data = line.slice(5).trim()
         if (data === '[DONE]') break
         if (data.startsWith('[ERROR]')) {
-          streamingText.value = data.slice(7).trim() || 'AI 服务暂时不可用，请稍后重试'
+          errorOccurred = true
+          const errMsg = data.slice(7).trim()
+          // 判断是否 OpenAI 不可用
+          if (errMsg.includes('OpenAI') || errMsg.includes('API') || errMsg.includes('timeout')) {
+            errorType = 'openai_unavailable'
+          }
+          streamingText.value = errMsg || 'AI 服务暂时不可用，请稍后重试'
           break
         }
         // 反转义换行
@@ -238,13 +281,29 @@ async function sendMessage() {
     }
 
     // 流结束，把 streaming 内容固化为消息
-    if (streamingText.value) {
+    if (streamingText.value && !errorOccurred) {
       messages.value.push({ role: 'ai', content: streamingText.value })
+    } else if (errorOccurred) {
+      // 流式输出中错误，添加错误消息
+      messages.value.push({
+        role: 'ai',
+        content: _buildErrorMessage(errorType),
+        isError: true,
+        canRetry: true,
+        retryQuestion: question,
+      })
     }
   } catch (err) {
+    // 网络错误或 fetch 失败
+    if (err.name === 'TypeError' || err.message.includes('fetch')) {
+      errorType = 'network'
+    }
     messages.value.push({
       role: 'ai',
-      content: '抱歉，请求失败了。请检查网络或稍后重试。',
+      content: _buildErrorMessage(errorType),
+      isError: true,
+      canRetry: true,
+      retryQuestion: question,
     })
   } finally {
     isStreaming.value = false
@@ -484,6 +543,31 @@ async function sendMessage() {
   background: linear-gradient(135deg, var(--c-primary, #5b8dee), #8b6cf7);
   color: #fff;
   border-bottom-right-radius: 4px;
+}
+.msg-error .msg-bubble {
+  background: rgba(239,68,68,.08);
+  border: 1px solid rgba(239,68,68,.25);
+  color: var(--c-text, #1a2150);
+}
+.retry-btn {
+  margin-top: 8px;
+  padding: 5px 12px;
+  background: rgba(59,130,246,.12);
+  border: 1px solid rgba(59,130,246,.3);
+  border-radius: 7px;
+  color: #3b82f6;
+  font-size: .8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .12s;
+}
+.retry-btn:hover:not(:disabled) {
+  background: rgba(59,130,246,.2);
+  transform: translateY(-1px);
+}
+.retry-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
 }
 .msg-bubble :deep(code) {
   background: rgba(0,0,0,.08);
