@@ -4,8 +4,13 @@
     <div class="playground-header">
       <div class="left">
         <select v-model="selectedLang" class="lang-select">
-          <option v-for="lang in languages" :key="lang.id" :value="lang.id">
-            {{ lang.name }}
+          <option
+            v-for="lang in languages"
+            :key="lang.id"
+            :value="lang.id"
+            :disabled="!lang.available"
+          >
+            {{ lang.name }}{{ !lang.available ? ' (不可用)' : '' }}
           </option>
         </select>
         <span v-if="snippetId" class="snippet-badge">
@@ -45,6 +50,7 @@
         <span>{{ $t('playground.output') }}</span>
         <span v-if="result" class="meta">
           Exit: {{ result.exit_code }} | {{ result.duration_ms }}ms
+          <span v-if="result.engine" class="engine-badge" :class="result.engine">{{ result.engine }}</span>
         </span>
       </div>
       <pre class="output-content" v-if="result">{{ result.stdout || result.stderr || $t('playground.no_output') }}</pre>
@@ -132,10 +138,15 @@ onMounted(async () => {
     const res = await fetch('/api/v1/sandbox/languages')
     const data = await res.json()
     languages.value = data.languages
+    // 若当前选中语言不可用，自动切到第一个可用的
+    const avail = data.languages.find(l => l.available)
+    if (avail && !data.languages.find(l => l.id === selectedLang.value)?.available) {
+      selectedLang.value = avail.id
+    }
   } catch {
     languages.value = [
-      { id: 'python', name: 'Python 3' },
-      { id: 'javascript', name: 'Node.js' },
+      { id: 'python', name: 'Python 3', available: true },
+      { id: 'javascript', name: 'Node.js', available: true },
     ]
   }
 
@@ -336,6 +347,17 @@ function getDefaultCode(lang) {
   font-size: 12px;
   color: var(--text-secondary);
 }
+.engine-badge {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+.engine-badge.local  { background: #d4edda; color: #155724; }
+.engine-badge.docker { background: #cce5ff; color: #004085; }
+.engine-badge.mock   { background: #fff3cd; color: #856404; }
 .output-content {
   margin: 0;
   padding: 10px;
