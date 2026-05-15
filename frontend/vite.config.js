@@ -20,7 +20,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       disable: process.env.CI === 'true',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}','**/monacoeditorwork/*.js'],
         runtimeCaching: [
           {
             urlPattern: /^\/api\/v1\/articles/,

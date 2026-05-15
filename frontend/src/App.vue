@@ -6,6 +6,29 @@
         <component :is="Component" :key="route.path" />
       </transition>
     </router-view>
+        <!-- 备案号 -->
+    <footer class="beian-footer">
+      <a
+        href="https://beian.miit.gov.cn/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        鲁ICP备2026015817号
+      </a>
+
+      <span class="divider">|</span>
+
+      <a
+        href="https://beian.mps.gov.cn/#/query/webSearch"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="police-beian"
+      >
+        <img src="/beian.png" alt="公安备案" />
+        鲁公网安备37032102000341号
+      </a>
+
+    </footer>
   </div>
 </template>
 
@@ -86,5 +109,23 @@ onMounted(() => {
 @keyframes skeleton-wave {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+.police-beian img {
+  width: 12px;
+  height: 12px;
+  object-fit: contain;
+}
+.beian-footer {
+  margin-top: auto;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 11px;   /* 调小文字 */
+  color: #999;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 </style>

@@ -1,14 +1,14 @@
-"""init
+"""init tables
 
-Revision ID: bcc714072d0a
+Revision ID: 4cbdfcce46d0
 Revises: 
-Create Date: 2026-03-31 06:05:44.150845
+Create Date: 2026-04-13 02:18:51.049492
 """
 from alembic import op
 import sqlalchemy as sa
 
 
-revision = 'bcc714072d0a'
+revision = '4cbdfcce46d0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,9 +30,13 @@ def upgrade() -> None:
     sa.Column('github_url', sa.String(length=256), nullable=True),
     sa.Column('linkedin_url', sa.String(length=256), nullable=True),
     sa.Column('website_url', sa.String(length=256), nullable=True),
+    sa.Column('csdn_url', sa.String(length=256), nullable=True),
     sa.Column('location', sa.String(length=128), nullable=True),
     sa.Column('email_public', sa.String(length=128), nullable=True),
     sa.Column('resume_data', sa.Text(), nullable=True),
+    sa.Column('mfa_enabled', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('mfa_secret', sa.String(length=64), nullable=True),
+    sa.Column('mfa_pending_secret', sa.String(length=64), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
